@@ -469,43 +469,49 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
     dc.on("error", () => {});
   }
 
-  function handleMsg(sid: string, data: unknown) {
-    if (typeof data === "string") {
+  function handleMsg(sid: string, raw: unknown) {
+    let data: Record<string, unknown>;
+    if (typeof raw === "string") {
       try {
-        data = JSON.parse(data);
+        data = JSON.parse(raw) as Record<string, unknown>;
       } catch {
         return;
       }
+    } else if (raw && typeof raw === "object") {
+      data = raw as Record<string, unknown>;
+    } else {
+      return;
     }
-    if (!data?.type) return;
+    if (!data.type) return;
 
     const states = peerStatesRef.current;
     const conns = connectionsRef.current;
     const me = meRef.current;
+    const msg = data as Record<string, string | number | boolean | string[]>;
 
-    switch (data.type) {
+    switch (msg.type as string) {
       case "join":
         if (!states.has(sid)) {
           const rp = randomPos();
           states.set(sid, {
             x: rp.x,
             y: rp.y,
-            name: data.name || sid,
+            name: (msg.name as string) || sid,
           });
           updateCount();
-        } else if (data.name) {
-          states.get(sid)!.name = data.name;
+        } else if (msg.name) {
+          states.get(sid)!.name = msg.name as string;
         }
         break;
 
       case "pl":
-        for (const p of data.peers || []) {
+        for (const p of (msg.peers as string[]) || []) {
           if (!conns.has(p) && p !== me.peerId) connectTo(p);
         }
         break;
 
       case "pj":
-        const np = data.pid;
+        const np = msg.pid as string;
         if (!conns.has(np) && np !== me.peerId) {
           connectTo(np);
           if (!states.has(np)) {
@@ -513,7 +519,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
             states.set(np, {
               x: rp.x,
               y: rp.y,
-              name: data.name || np,
+              name: (msg.name as string) || np,
             });
             updateCount();
           }
@@ -523,33 +529,33 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
       case "mv":
         if (!states.has(sid)) {
           states.set(sid, {
-            x: data.x || 200,
-            y: data.y || MAP_H / 2,
-            name: data.name || sid,
+            x: (msg.x as number) || 200,
+            y: (msg.y as number) || MAP_H / 2,
+            name: (msg.name as string) || sid,
           });
           updateCount();
         }
         const s = states.get(sid);
         if (s) {
-          s.x = data.x;
-          s.y = data.y;
-          if (data.name) s.name = data.name;
+          s.x = msg.x as number;
+          s.y = msg.y as number;
+          if (msg.name) s.name = msg.name as string;
         }
         break;
 
       case "chat":
-        if (data.areaId && data.areaId === me.currentArea) {
+        if (msg.areaId && (msg.areaId as string) === me.currentArea) {
           const nm = states.get(sid)?.name || sid;
-          addChat(data.text, nm, sid, data.time, false);
+          addChat(msg.text as string, nm, sid, msg.time as string, false);
         }
         addVisualBubble(sid);
         syncRoomChat();
         break;
 
       case "typing":
-        if (data.areaId && data.areaId === me.currentArea) {
+        if (msg.areaId && (msg.areaId as string) === me.currentArea) {
           const tName = states.get(sid)?.name || sid;
-          if (data.typing) {
+          if (msg.typing) {
             typingTimestampsRef.current.set(sid, clockRef.current);
             typingNamesRef.current.set(sid, tName);
           } else {
@@ -562,25 +568,24 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
 
       case "nm":
         const s2 = states.get(sid);
-        if (s2) s2.name = data.name;
+        if (s2) s2.name = msg.name as string;
         break;
 
       case "dm":
-        const fromPid = data.from || sid;
-        const fromName = data.name || states.get(fromPid)?.name || fromPid;
+        const fromPid = (msg.from as string) || sid;
+        const fromName = (msg.name as string) || states.get(fromPid)?.name || fromPid;
         const myPid = me.peerId;
         const convKey = [fromPid, myPid].sort().join(":");
         const dms = dmMessagesRef.current.get(convKey) || [];
         dms.push({
-          text: data.text,
+          text: msg.text as string,
           sender: fromName,
           senderId: fromPid,
-          time: data.time || clock(),
+          time: (msg.time as string) || clock(),
           isSelf: false,
           isSystem: false,
         });
         dmMessagesRef.current.set(convKey, dms);
-        // Kalo lagi ngobrol sama pengirim, update tampilan
         if (activeDmRef.current === fromPid) {
           syncDmChat();
         }

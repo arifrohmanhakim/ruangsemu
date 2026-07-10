@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ngumpul: #00d4aa;
-  --color-ngumpul-dark: #00a886;
+  --color-ruangsemu: #00d4aa;
+  --color-ruangsemu-dark: #00a886;
   --color-surface: #1a1a2e;
   --color-surface2: #242442;
   --color-bg: #0f0f1a;

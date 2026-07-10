@@ -16,10 +16,10 @@ export function generatePeerId(): string {
 
 export function getPeerId(): string {
   if (typeof window === 'undefined') return '';
-  let id = localStorage.getItem('ngumpul_peer_id');
+  let id = localStorage.getItem('ruangsemu_peer_id');
   if (!id) {
     id = generatePeerId();
-    localStorage.setItem('ngumpul_peer_id', id);
+    localStorage.setItem('ruangsemu_peer_id', id);
   }
   return id;
 }

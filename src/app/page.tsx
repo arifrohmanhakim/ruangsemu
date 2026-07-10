@@ -21,12 +21,12 @@ export default function LobbyPage() {
   useEffect(() => {
     const pid = getPeerId();
     setPeerId(pid);
-    const savedName = localStorage.getItem('ngumpul_name') || '';
+    const savedName = localStorage.getItem('ruangsemu_name') || '';
     setName(savedName);
 
     // Check for rejoin
     try {
-      const stored = localStorage.getItem('ngumpul_last_room');
+      const stored = localStorage.getItem('ruangsemu_last_room');
       if (stored) {
         const data = JSON.parse(stored);
         if (data.roomId) {
@@ -58,7 +58,7 @@ export default function LobbyPage() {
 
   // Save name
   useEffect(() => {
-    if (name) localStorage.setItem('ngumpul_name', name);
+    if (name) localStorage.setItem('ruangsemu_name', name);
   }, [name]);
 
   const handleGoogleLogin = useCallback(async () => {
@@ -93,9 +93,9 @@ export default function LobbyPage() {
       });
       if (error) throw error;
 
-      localStorage.setItem('ngumpul_name', displayName);
+      localStorage.setItem('ruangsemu_name', displayName);
       localStorage.setItem(
-        'ngumpul_last_room',
+        'ruangsemu_last_room',
         JSON.stringify({ roomId: code, peerId, name: displayName })
       );
 
@@ -131,9 +131,9 @@ export default function LobbyPage() {
         return;
       }
 
-      localStorage.setItem('ngumpul_name', displayName);
+      localStorage.setItem('ruangsemu_name', displayName);
       localStorage.setItem(
-        'ngumpul_last_room',
+        'ruangsemu_last_room',
         JSON.stringify({ roomId: input, peerId, name: displayName })
       );
 
@@ -147,7 +147,7 @@ export default function LobbyPage() {
 
   const handleRejoin = useCallback(() => {
     try {
-      const stored = localStorage.getItem('ngumpul_last_room');
+      const stored = localStorage.getItem('ruangsemu_last_room');
       if (stored) {
         const data = JSON.parse(stored);
         const displayName = name.trim() || peerId;
@@ -157,7 +157,7 @@ export default function LobbyPage() {
   }, [name, peerId]);
 
   const clearRejoin = useCallback(() => {
-    localStorage.removeItem('ngumpul_last_room');
+    localStorage.removeItem('ruangsemu_last_room');
     setHasRejoin(false);
     setStatus('✅ Data room dibuang');
     setStatusType('success');
@@ -166,7 +166,7 @@ export default function LobbyPage() {
   const statusColors = {
     info: 'text-dim',
     error: 'text-danger',
-    success: 'text-ngumpul',
+    success: 'text-ruangsemu',
     warn: 'text-warning',
   };
 
@@ -191,7 +191,7 @@ export default function LobbyPage() {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="text-5xl mb-1">🐱</div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-ngumpul to-accent-blue bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent">
             Ngumpul
           </h1>
           <p className="text-dim text-sm mt-1">Virtual space — jalan, ketemu, ngobrol</p>
@@ -204,7 +204,7 @@ export default function LobbyPage() {
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="" className="w-10 h-10 rounded-full" />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-ngumpul flex items-center justify-center text-black font-bold text-lg">
+                <div className="w-10 h-10 rounded-full bg-ruangsemu flex items-center justify-center text-black font-bold text-lg">
                   {user.name.charAt(0)}
                 </div>
               )}
@@ -240,13 +240,13 @@ export default function LobbyPage() {
             maxLength={20}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ngumpul transition outline-none placeholder:text-dim/50"
+            className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ruangsemu transition outline-none placeholder:text-dim/50"
           />
         </div>
 
         {/* Peer ID badge */}
         <div className="bg-bg rounded-lg px-3 py-2 mb-4 text-center text-xs text-dim flex items-center justify-center gap-2">
-          🆔 ID: <span className="text-ngumpul font-semibold tracking-wide text-sm">{peerId}</span>
+          🆔 ID: <span className="text-ruangsemu font-semibold tracking-wide text-sm">{peerId}</span>
           <button
             onClick={() => {
               navigator.clipboard.writeText(peerId);
@@ -268,11 +268,11 @@ export default function LobbyPage() {
             value={roomCode}
             onChange={(e) => setRoomCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
-            className="flex-1 bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ngumpul transition outline-none placeholder:text-dim/50 uppercase"
+            className="flex-1 bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ruangsemu transition outline-none placeholder:text-dim/50 uppercase"
           />
           <button
             onClick={handleJoinRoom}
-            className="bg-ngumpul text-black font-bold px-5 py-3 rounded-xl hover:bg-ngumpul-dark transition text-sm whitespace-nowrap"
+            className="bg-ruangsemu text-black font-bold px-5 py-3 rounded-xl hover:bg-ruangsemu-dark transition text-sm whitespace-nowrap"
           >
             Gabung
           </button>
@@ -302,12 +302,12 @@ export default function LobbyPage() {
         {hasRejoin && (
           <div className="mt-4 bg-surface2/30 rounded-xl p-4 border border-warning/30">
             <div className="text-xs text-warning font-semibold mb-1">🔄 Kamu punya room sebelumnya!</div>
-            <div className="text-xl font-bold font-mono text-ngumpul tracking-wider mb-1">
+            <div className="text-xl font-bold font-mono text-ruangsemu tracking-wider mb-1">
               {rejoinRoomId}
             </div>
             <button
               onClick={handleRejoin}
-              className="w-full bg-ngumpul text-black font-bold py-2.5 px-4 rounded-xl hover:bg-ngumpul-dark transition text-sm mt-2"
+              className="w-full bg-ruangsemu text-black font-bold py-2.5 px-4 rounded-xl hover:bg-ruangsemu-dark transition text-sm mt-2"
             >
               🚪 Masuk Lagi ke Room
             </button>

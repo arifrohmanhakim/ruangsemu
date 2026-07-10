@@ -21,7 +21,7 @@ const RoomView = dynamic(() => import('@/components/RoomView'), {
 function RoomPageInner({ roomId }: { roomId: string }) {
   const searchParams = useSearchParams();
   const nameFromUrl = searchParams.get('name') || '';
-  const defaultName = nameFromUrl || (typeof window !== 'undefined' ? localStorage.getItem('ngumpul_name') : '') || getPeerId();
+  const defaultName = nameFromUrl || (typeof window !== 'undefined' ? localStorage.getItem('ruangsemu_name') : '') || getPeerId();
 
   return <RoomView roomId={roomId} userName={defaultName} />;
 }

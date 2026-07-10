@@ -654,7 +654,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
       div.innerHTML = `
         <div class="max-w-[75%] ${
           m.isSelf
-            ? "bg-ngumpul text-black rounded-2xl rounded-br-md px-3 py-1.5"
+            ? "bg-ruangsemu text-black rounded-2xl rounded-br-md px-3 py-1.5"
             : "bg-surface2 text-text rounded-2xl rounded-bl-md px-3 py-1.5"
         }">
           <div class="text-xs">${escHtml(m.sender)}</div>
@@ -773,10 +773,10 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
           ? getRoomById(m.area)?.name || m.area
           : "🚶 Koridor";
         const badge = m.isMe
-          ? '<span class="text-[10px] text-ngumpul font-semibold ml-1">(lo)</span>'
+          ? '<span class="text-[10px] text-ruangsemu font-semibold ml-1">(lo)</span>'
           : "";
         return `<div class="member-item flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-surface2/50 transition text-xs cursor-pointer" data-pid="${escHtml(m.pid)}">
-          <span class="w-2 h-2 rounded-full shrink-0 ${m.isMe ? "bg-ngumpul" : "bg-accent-blue"}"></span>
+          <span class="w-2 h-2 rounded-full shrink-0 ${m.isMe ? "bg-ruangsemu" : "bg-accent-blue"}"></span>
           <span class="text-text truncate">${escHtml(m.name)}${badge}</span>
           <span class="text-dim/60 ml-auto text-[10px] truncate">${roomName}</span>
         </div>`;
@@ -1180,9 +1180,9 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
       const div = document.createElement("div");
       div.className = `mb-1.5 animate-in flex flex-col ${m.isSelf ? "items-end" : "items-start"}`;
       div.innerHTML = `
-        <div class="text-xs font-semibold ${m.isSelf ? "text-warning" : "text-ngumpul"}">${escHtml(m.sender)}</div>
+        <div class="text-xs font-semibold ${m.isSelf ? "text-warning" : "text-ruangsemu"}">${escHtml(m.sender)}</div>
         <div class="inline-block px-3.5 py-2 rounded-xl text-sm leading-relaxed ${
-          m.isSelf ? "bg-ngumpul rounded-br-md" : "bg-surface2 rounded-bl-md"
+          m.isSelf ? "bg-ruangsemu rounded-br-md" : "bg-surface2 rounded-bl-md"
         }">${escHtml(m.text)}</div>
         <div class="text-[10px] text-dim mt-0.5">${m.time}</div>
       `;
@@ -1539,7 +1539,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
       await upsertMember();
 
       localStorage.setItem(
-        "ngumpul_last_room",
+        "ruangsemu_last_room",
         JSON.stringify({ roomId, peerId: pid, name: meRef.current.name }),
       );
       for (const m of members) {
@@ -1564,7 +1564,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
     peer.on("error", (err) => {
       if (err.type === "unavailable-id") {
         const newId = generatePeerId();
-        localStorage.setItem("ngumpul_peer_id", newId);
+        localStorage.setItem("ruangsemu_peer_id", newId);
         meRef.current.peerId = newId;
         peer.destroy();
         peer = new Peer(newId);
@@ -1574,7 +1574,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
           ensureListening();
           await upsertMember();
           localStorage.setItem(
-            "ngumpul_last_room",
+            "ruangsemu_last_room",
             JSON.stringify({ roomId, peerId: pid, name: meRef.current.name }),
           );
           const members = await getExistingMembers();
@@ -1708,7 +1708,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         .eq("room_id", roomId)
         .eq("peer_id", meRef.current.peerId);
     } catch {}
-    localStorage.removeItem("ngumpul_last_room");
+    localStorage.removeItem("ruangsemu_last_room");
     for (const [, dc] of connectionsRef.current) {
       try {
         dc.close();
@@ -1733,7 +1733,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         {/* HUD top */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between pointer-events-none z-10">
           <div className="pointer-events-auto bg-bg/85 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs text-dim flex items-center gap-2">
-            🏠 <strong className="text-ngumpul">{roomId}</strong>
+            🏠 <strong className="text-ruangsemu">{roomId}</strong>
             <span id="onlineCount">0 online</span>
             <span className="text-warning font-semibold">{userName}</span>
             <span
@@ -1760,7 +1760,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10">
           <div
             id="roomInfo"
-            className="bg-bg/85 backdrop-blur-sm px-4 py-1.5 rounded-xl text-sm font-semibold text-ngumpul border border-ngumpul/20"
+            className="bg-bg/85 backdrop-blur-sm px-4 py-1.5 rounded-xl text-sm font-semibold text-ruangsemu border border-ruangsemu/20"
             style={{ display: "none" }}
           />
           <div
@@ -1782,7 +1782,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         {pinDialog && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
             <div className="bg-surface rounded-2xl p-6 w-[300px] shadow-2xl border border-surface2 pointer-events-auto">
-              <h3 className="text-lg font-bold text-ngumpul text-center mb-2">
+              <h3 className="text-lg font-bold text-ruangsemu text-center mb-2">
                 🔒 {pinDialog.areaName}
               </h3>
               <p className="text-dim text-xs text-center mb-4">
@@ -1798,7 +1798,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                   if (e.key === "Enter") handlePinSubmit();
                   if (e.key === "Escape") dismissPinDialog();
                 }}
-                className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm text-center tracking-widest text-lg outline-none focus:border-ngumpul transition placeholder:text-dim/30"
+                className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm text-center tracking-widest text-lg outline-none focus:border-ruangsemu transition placeholder:text-dim/30"
               />
               {pinError && (
                 <p className="text-danger text-xs text-center mt-2">
@@ -1814,7 +1814,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                 </button>
                 <button
                   onClick={handlePinSubmit}
-                  className="flex-1 bg-ngumpul text-black font-bold py-2.5 rounded-xl text-sm hover:bg-ngumpul-dark transition"
+                  className="flex-1 bg-ruangsemu text-black font-bold py-2.5 rounded-xl text-sm hover:bg-ruangsemu-dark transition"
                 >
                   Masuk
                 </button>
@@ -1861,7 +1861,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
               {!profileTarget.isMe && (
                 <button
                   onClick={() => startDm(profileTarget.pid, profileTarget.name)}
-                  className="w-full bg-ngumpul/20 text-ngumpul font-semibold py-2 rounded-xl text-sm hover:bg-ngumpul/30 transition"
+                  className="w-full bg-ruangsemu/20 text-ruangsemu font-semibold py-2 rounded-xl text-sm hover:bg-ruangsemu/30 transition"
                 >
                   💬 Kirim DM
                 </button>
@@ -1879,19 +1879,19 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
               <h3 className="text-xs font-semibold text-dim flex items-center gap-2">
                 <button
                   onClick={() => setActiveDmBoth(null)}
-                  className="text-xs text-ngumpul hover:text-ngumpul-dark transition mr-1"
+                  className="text-xs text-ruangsemu hover:text-ruangsemu-dark transition mr-1"
                 >
                   ← Kembali
                 </button>
                 💌 DM ·{" "}
-                <span className="text-ngumpul">{dmTargetName}</span>
+                <span className="text-ruangsemu">{dmTargetName}</span>
               </h3>
             </div>
           ) : (
             <>
               <h3 className="text-xs font-semibold text-dim flex items-center gap-2">
                 💬 Ngobrol ·{" "}
-                <span id="roomCount" className="text-ngumpul">
+                <span id="roomCount" className="text-ruangsemu">
                   0 orang
                 </span>
               </h3>
@@ -1976,7 +1976,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                           className={`text-[11px] px-2.5 py-1 rounded-full font-semibold transition ${
                             isPrivate
                               ? "bg-warning/20 text-warning"
-                              : "bg-ngumpul/20 text-ngumpul"
+                              : "bg-ruangsemu/20 text-ruangsemu"
                           }`}
                         >
                           {isPrivate ? "🔒 Private" : "🌍 Public"}
@@ -1992,7 +1992,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                               setEditPinFor(r.id);
                               setEditPinVal(cfg?.pin || "");
                             }}
-                            className="text-[11px] text-ngumpul hover:text-ngumpul-dark transition"
+                            className="text-[11px] text-ruangsemu hover:text-ruangsemu-dark transition"
                           >
                             Ganti
                           </button>
@@ -2006,7 +2006,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                             value={editPinVal}
                             onChange={(e) => setEditPinVal(e.target.value)}
                             placeholder="PIN baru..."
-                            className="flex-1 bg-surface2 rounded-lg px-2.5 py-1.5 text-xs text-text outline-none focus:border-ngumpul transition border border-transparent"
+                            className="flex-1 bg-surface2 rounded-lg px-2.5 py-1.5 text-xs text-text outline-none focus:border-ruangsemu transition border border-transparent"
                           />
                           <button
                             onClick={() => {
@@ -2019,7 +2019,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                               }
                               setEditPinFor(null);
                             }}
-                            className="text-[11px] bg-ngumpul text-black font-semibold px-2.5 py-1.5 rounded-lg hover:bg-ngumpul-dark transition"
+                            className="text-[11px] bg-ruangsemu text-black font-semibold px-2.5 py-1.5 rounded-lg hover:bg-ruangsemu-dark transition"
                           >
                             Simpan
                           </button>
@@ -2060,11 +2060,11 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                           if (e.key === "Enter") handleCreateRoom();
                         }}
                         placeholder="Nama room..."
-                        className="w-full bg-surface2 rounded-lg px-2.5 py-1.5 text-xs text-text outline-none focus:border-ngumpul transition border border-transparent"
+                        className="w-full bg-surface2 rounded-lg px-2.5 py-1.5 text-xs text-text outline-none focus:border-ruangsemu transition border border-transparent"
                       />
                       <button
                         onClick={handleCreateRoom}
-                        className="w-full bg-ngumpul text-black text-xs font-semibold py-1.5 rounded-lg hover:bg-ngumpul-dark transition"
+                        className="w-full bg-ruangsemu text-black text-xs font-semibold py-1.5 rounded-lg hover:bg-ruangsemu-dark transition"
                       >
                         ➕ Buat
                       </button>
@@ -2072,7 +2072,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                   ) : (
                     <button
                       onClick={() => setShowCreateRoom(true)}
-                      className="w-full text-xs text-ngumpul font-semibold py-1.5 hover:text-ngumpul-dark transition flex items-center justify-center gap-1"
+                      className="w-full text-xs text-ruangsemu font-semibold py-1.5 hover:text-ruangsemu-dark transition flex items-center justify-center gap-1"
                     >
                       ➕ Buat Room Baru
                     </button>
@@ -2111,7 +2111,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                   }
                 }
               }}
-              className="flex-1 bg-bg border border-surface2 rounded-full px-4 py-2.5 text-text text-sm outline-none focus:border-ngumpul transition disabled:opacity-40"
+              className="flex-1 bg-bg border border-surface2 rounded-full px-4 py-2.5 text-text text-sm outline-none focus:border-ruangsemu transition disabled:opacity-40"
             />
             <button
               id="sendBtn"
@@ -2128,7 +2128,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
                   sendChat();
                 }
               }}
-              className="w-[42px] h-[42px] rounded-full bg-ngumpul text-black flex items-center justify-center text-lg shrink-0 hover:bg-ngumpul-dark transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-[42px] h-[42px] rounded-full bg-ruangsemu text-black flex items-center justify-center text-lg shrink-0 hover:bg-ruangsemu-dark transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               ➤
             </button>

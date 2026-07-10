@@ -1,4 +1,4 @@
-// Ngumpul — Map Definition
+// RuangSemu — Map Definition
 // Tile-based map with rooms, walls, doors, and collision detection
 
 export interface RoomDef {

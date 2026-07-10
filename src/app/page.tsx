@@ -175,7 +175,7 @@ export default function LobbyPage() {
       <div className="h-screen flex items-center justify-center bg-bg">
         <div className="text-center text-dim">
           <div className="text-5xl mb-4">🐱</div>
-          <div className="text-lg animate-pulse">Ngumpul...</div>
+          <div className="text-lg animate-pulse">RuangSemu...</div>
         </div>
       </div>
     );
@@ -192,7 +192,7 @@ export default function LobbyPage() {
         <div className="text-center mb-6">
           <div className="text-5xl mb-1">🐱</div>
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent">
-            Ngumpul
+            RuangSemu
           </h1>
           <p className="text-dim text-sm mt-1">Virtual space — jalan, ketemu, ngobrol</p>
         </div>

@@ -1,4 +1,4 @@
--- Ngumpul — Supabase Schema
+-- RuangSemu — Supabase Schema
 -- Jalankan di Supabase SQL Editor
 
 -- 1. Rooms table

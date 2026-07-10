@@ -31,6 +31,8 @@ export const MAP_W = 1200;
 export const MAP_H = 900;
 export const TILE = 40;
 export const AVATAR_R = 16;
+export const SPEED = 2.5;
+export const BROADCAST_MS = 50;
 
 // ─── ROOM DEFINITIONS ─────────────────────────────────
 // All rooms are enclosed spaces with walls and exactly one door each.
@@ -91,10 +93,7 @@ export function getAllRooms(): RoomDef[] {
 // Auto-generated from room definitions.
 // Each room's 4 walls minus the door opening.
 
-const WALL_T = 8; // wall thickness used in rendering (visual)
 const DOOR_HALF = 8; // extra padding for collision around doors
-
-const wallSegmentsCache: WallSegment[] | null = null;
 
 export function getWallSegments(): WallSegment[] {
   const walls: WallSegment[] = [];

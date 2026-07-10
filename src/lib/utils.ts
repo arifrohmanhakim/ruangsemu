@@ -40,7 +40,17 @@ export function clock(): string {
 }
 
 export function escHtml(s: string): string {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  return s
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, '"')
+    .replace(/'/g, "&#039;");
+}
+
+export function randomPos() {
+  return {
+    x: 200 + Math.random() * 400,
+    y: Math.round(450 + (Math.random() - 0.5) * 200),
+  };
 }

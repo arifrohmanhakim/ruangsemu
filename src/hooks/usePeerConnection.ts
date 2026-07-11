@@ -16,6 +16,7 @@ interface PeerState {
 interface UsePeerConnectionProps {
   roomId: string;
   userName: string;
+  userId: string;
   onPeerJoin: (peerId: string, name: string, area: string | null) => void;
   onPeerLeave: (peerId: string, name: string) => void;
   onMessage: (sid: string, data: Record<string, unknown>) => void;
@@ -25,6 +26,7 @@ interface UsePeerConnectionProps {
 export function usePeerConnection({
   roomId,
   userName,
+  userId,
   onPeerJoin,
   onPeerLeave,
   onMessage,
@@ -43,13 +45,14 @@ export function usePeerConnection({
     x: 200,
     y: 500,
     peerId: "",
+    userId,
     name: userName,
     currentArea: null as string | null,
   });
 
   const restorePosition = useCallback(async () => {
     const members = await getExistingMembers();
-    const saved = members.find((m) => m.peer_id === meRef.current.peerId);
+    const saved = members.find((m) => m.user_id === meRef.current.userId);
     if (saved) {
       meRef.current.x = saved.x;
       meRef.current.y = saved.y;
@@ -62,10 +65,10 @@ export function usePeerConnection({
     try {
       const { data } = await supabaseRef.current
         .from("room_members")
-        .select("*")
+        .select("user_id, peer_id, name, x, y, current_area")
         .eq("room_id", roomId)
         .order("created_at", { ascending: true });
-      return (data || []) as { peer_id: string; name: string; x: number; y: number; current_area: string | null }[];
+      return (data || []) as { user_id: string; peer_id: string; name: string; x: number; y: number; current_area: string | null }[];
     } catch {
       return [];
     }
@@ -77,6 +80,7 @@ export function usePeerConnection({
       await supabaseRef.current.from("room_members").upsert(
         {
           room_id: roomId,
+          user_id: me.userId,
           peer_id: me.peerId,
           name: me.name,
           x: Math.round(me.x),
@@ -84,7 +88,7 @@ export function usePeerConnection({
           current_area: me.currentArea,
           last_seen: new Date().toISOString(),
         },
-        { onConflict: "room_id,peer_id" },
+        { onConflict: "room_id,user_id" },
       );
     } catch (e) {
       console.error("upsertMember error:", e);
@@ -97,7 +101,7 @@ export function usePeerConnection({
         .from("room_members")
         .delete()
         .eq("room_id", roomId)
-        .eq("peer_id", meRef.current.peerId);
+        .eq("user_id", meRef.current.userId);
     } catch {}
   }
 
@@ -209,10 +213,10 @@ export function usePeerConnection({
           table: "room_members",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<{ peer_id: string; name: string; x: number; y: number; current_area: string | null }>) => {
+        (payload: RealtimePostgresChangesPayload<{ user_id: string; peer_id: string; name: string; x: number; y: number; current_area: string | null }>) => {
           if (!payload.new || !("peer_id" in payload.new)) return;
           const m = payload.new;
-          if (m.peer_id === meRef.current.peerId) return;
+          if (m.user_id === meRef.current.userId) return;
           if (!peerStatesRef.current.has(m.peer_id)) {
             peerStatesRef.current.set(m.peer_id, { x: m.x || 200, y: m.y || 0, name: m.name || m.peer_id });
             onPeerJoin(m.peer_id, m.name || m.peer_id, m.current_area);
@@ -228,10 +232,10 @@ export function usePeerConnection({
           table: "room_members",
           filter: `room_id=eq.${roomId}`,
         },
-        (payload: RealtimePostgresChangesPayload<{ peer_id: string; name: string }>) => {
+        (payload: RealtimePostgresChangesPayload<{ user_id: string; peer_id: string }>) => {
           if (!payload.old || !("peer_id" in payload.old)) return;
           const old = payload.old;
-          if (old.peer_id === meRef.current.peerId) return;
+          if (old.user_id === meRef.current.userId) return;
           handleLeave(old.peer_id!);
         },
       )
@@ -335,6 +339,7 @@ onSyncRequest?.();
       try {
         const body = JSON.stringify({
           room_id: roomId,
+          user_id: me.userId,
           peer_id: me.peerId,
           name: me.name,
           x: Math.round(me.x),

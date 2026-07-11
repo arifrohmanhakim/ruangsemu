@@ -10,7 +10,7 @@ const MAX_MSGS_PER_ROOM = 200;
 
 interface UseChatProps {
   roomId: string;
-  meRef: { current: { peerId: string; name: string; currentArea: string | null } };
+  meRef: { current: { peerId: string; userId: string; name: string; currentArea: string | null } };
   sendJson: (dc: DataConnection, data: Record<string, unknown>) => void;
   connectionsRef: { current: Map<string, DataConnection> };
 }
@@ -72,9 +72,9 @@ export function useChat({
       const msgs: ChatMessage[] = (data as Array<Record<string, string>>).map((m) => ({
         text: m.content,
         sender: m.sender_name,
-        senderId: m.sender_peer_id,
+        senderId: m.sender_user_id,
         time: new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        isSelf: m.sender_peer_id === meRef.current.peerId,
+        isSelf: m.sender_user_id === meRef.current.userId,
         isSystem: false,
       }));
       const existing = chatsRef.current.get(areaId) || [];
@@ -98,7 +98,7 @@ export function useChat({
     addVisualBubble(meRef.current.peerId);
     try {
       await supabaseRef.current.from("room_messages").insert({
-        room_id: roomId, area_id: area, sender_peer_id: meRef.current.peerId, sender_name: meRef.current.name, content: msg,
+        room_id: roomId, area_id: area, sender_user_id: meRef.current.userId, sender_name: meRef.current.name, content: msg,
       });
     } catch {}
   }

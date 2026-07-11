@@ -30,6 +30,7 @@ interface VisualBubble {
 interface RoomViewProps {
   roomId: string;
   userName: string;
+  userId: string;
 }
 
 interface VisualBubble {
@@ -41,7 +42,7 @@ function handleMsg(_sid: string, data: Record<string, unknown>) {
   // Implementation will be below
 }
 
-export default function RoomView({ roomId, userName }: RoomViewProps) {
+export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
@@ -59,12 +60,14 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
   // Me state for render - sync with peer.meRef
   const [me, setMe] = useState<{
     peerId: string;
+    userId: string;
     name: string;
     currentArea: string | null;
     x: number;
     y: number;
   }>({
     peerId: "",
+    userId: "",
     name: "",
     currentArea: null,
     x: 0,
@@ -83,6 +86,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
   const peer = usePeerConnection({
     roomId,
     userName,
+    userId,
     onPeerJoin: (pid, name, _area) => chatRef.current?.addSysGlobal(`${name} masuk room 🚶`),
     onPeerLeave: (pid, name) => chatRef.current?.addSysGlobal(`${name} keluar room 👋`),
     onMessage: handleMsg,
@@ -114,6 +118,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
   useEffect(() => {
     setMe({
       peerId: peerMeRef.current.peerId,
+      userId: peerMeRef.current.userId,
       name: peerMeRef.current.name,
       currentArea: peerMeRef.current.currentArea,
       x: peerMeRef.current.x,

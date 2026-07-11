@@ -1,53 +1,98 @@
--- RuangSemu — Supabase Schema
+-- RuangSemu — Supabase Schema v2 (fresh install)
 -- Jalankan di Supabase SQL Editor
+-- ⚠️ Jika sudah ada tabel dengan data, gunakan supabase/migration.sql
 
+-- ════════════════════════════════════
+-- 0. Users table (auth.users mirror)
+-- ════════════════════════════════════
+create table if not exists users (
+  id uuid primary key references auth.users(id) on delete cascade,
+  peer_id text not null unique,
+  name text not null default '',
+  avatar_url text default '',
+  created_at timestamptz default now()
+);
+
+-- Auto-create user row on auth signup
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.users (id, peer_id, name, avatar_url)
+  values (
+    new.id,
+    'p2p_' || encode(gen_random_bytes(12), 'hex'),
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1), 'User'),
+    new.raw_user_meta_data->>'avatar_url'
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- Enable RLS
+alter table users enable row level security;
+create policy "Anyone can read users"
+  on users for select using (true);
+create policy "Users can update own row"
+  on users for update using (auth.uid() = id);
+
+-- ════════════════════════════════════
 -- 1. Rooms table
+-- ════════════════════════════════════
 create table if not exists rooms (
-  id text primary key,                -- "RM-A7K2"
+  id text primary key,
   name text default '',
-  host_peer_id text not null,
+  host_user_id uuid not null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
--- 2. Room members (online presence with position)
+-- ════════════════════════════════════
+-- 2. Room members
+-- ════════════════════════════════════
 create table if not exists room_members (
   id uuid default gen_random_uuid() primary key,
   room_id text not null references rooms(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   peer_id text not null,
-  user_id uuid references auth.users(id) on delete set null,
   name text not null,
-  avatar_url text default '',
   x integer default 200,
   y integer default 400,
   current_area text default null,
   last_seen timestamptz default now(),
   created_at timestamptz default now(),
-  unique(room_id, peer_id)
+  unique(room_id, user_id)
 );
 
--- 3. Messages with area support (room-based chat)
+create index if not exists idx_room_members_room on room_members(room_id);
+create index if not exists idx_room_members_user on room_members(user_id);
+
+-- ════════════════════════════════════
+-- 3. Room messages
+-- ════════════════════════════════════
 create table if not exists room_messages (
   id uuid default gen_random_uuid() primary key,
   room_id text not null references rooms(id) on delete cascade,
-  area_id text not null,               -- 'ruang_kerja' | 'pantry' | 'meeting'
-  sender_peer_id text not null,
+  area_id text not null,
+  sender_user_id uuid not null,
   sender_name text not null,
   content text not null,
   created_at timestamptz default now()
 );
 
--- Indexes
-create index if not exists idx_room_members_room on room_members(room_id);
-create index if not exists idx_room_members_peer on room_members(peer_id);
 create index if not exists idx_room_messages_area on room_messages(room_id, area_id, created_at);
 
--- Enable Row Level Security
+-- ════════════════════════════════════
+-- RLS
+-- ════════════════════════════════════
 alter table rooms enable row level security;
 alter table room_members enable row level security;
 alter table room_messages enable row level security;
 
--- Policies: anyone can read, only authenticated can insert/update
 create policy "Anyone can read rooms"
   on rooms for select using (true);
 
@@ -81,18 +126,19 @@ create policy "Anyone can insert messages"
 -- Realtime: enable for presence
 alter publication supabase_realtime add table room_members;
 
--- 4. Room area config (visibility + PIN per map room)
+-- ════════════════════════════════════
+-- 4. Room area config
+-- ════════════════════════════════════
 create table if not exists room_area_config (
   id bigint generated always as identity primary key,
   room_id text not null references rooms(id) on delete cascade,
-  area_id text not null,               -- 'ruang_kerja' | 'pantry' | 'meeting'
+  area_id text not null,
   visibility text not null default 'public',
   pin text default null,
   updated_at timestamptz default now(),
   unique(room_id, area_id)
 );
 
--- Index
 create index if not exists idx_room_area_config_room on room_area_config(room_id);
 
 alter table room_area_config enable row level security;
@@ -100,18 +146,14 @@ alter table room_area_config enable row level security;
 create policy "Anyone can read room_area_config"
   on room_area_config for select using (true);
 
--- Allow inserts/updates for any authenticated user (gate via app logic, not RLS)
 create policy "Anyone can insert room_area_config"
   on room_area_config for insert with check (true);
 
 create policy "Anyone can update room_area_config"
   on room_area_config for update using (true);
 
--- Realtime: enable for config changes
--- (bisa ditambah kalo nanti butuh realtime sync)
-
 -- ════════════════════════════════════
--- 5. Custom room definitions (created by room owner)
+-- 5. Custom room definitions
 -- ════════════════════════════════════
 create table if not exists room_defs (
   id bigint generated always as identity primary key,
@@ -140,12 +182,3 @@ create policy "Anyone can update room_defs"
 
 create policy "Anyone can delete room_defs"
   on room_defs for delete using (true);
-
--- ════════════════════════════════════
--- Migration: If table already exists, run ALTER instead:
--- ════════════════════════════════════
--- alter table room_members add column if not exists x integer default 200;
--- alter table room_members add column if not exists y integer default 400;
--- alter table room_members add column if not exists current_area text default null;
--- create policy if not exists "Anyone can delete members"
---   on room_members for delete using (true);

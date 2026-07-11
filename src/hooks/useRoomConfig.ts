@@ -7,7 +7,7 @@ import { getRoomById, getAllRooms, setCustomRooms, addCustomRoom, getWallSegment
 
 interface UseRoomConfigProps {
   roomId: string;
-  meRef: { current: { peerId: string; x: number; y: number; currentArea: string | null; name: string } };
+  meRef: { current: { peerId: string; userId: string; x: number; y: number; currentArea: string | null; name: string } };
   areaConfigsRef: { current: Map<string, AreaConfig> };
   wallsRef: { current: WallSegment[] };
   unlockedRoomsRef: { current: Set<string> };
@@ -30,7 +30,7 @@ export function useRoomConfig({
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [configDirty, setConfigDirty] = useState(0);
-  const hostPeerIdRef = useRef<string | null>(null);
+  const hostUserIdRef = useRef<string | null>(null);
   const pinInputRef = useRef<HTMLInputElement>(null);
   const pinDialogRef = useRef<{ areaId: string; areaName: string } | null>(null);
   const [pinDialog, setPinDialog] = useState<{ areaId: string; areaName: string } | null>(null);
@@ -43,8 +43,8 @@ export function useRoomConfig({
 
   async function fetchRoomConfig() {
     try {
-      const { data: room } = await supabaseRef.current.from("rooms").select("host_peer_id").eq("id", roomId).single();
-      if (room) { hostPeerIdRef.current = room.host_peer_id; setIsCreator(room.host_peer_id === meRef.current.peerId); }
+      const { data: room } = await supabaseRef.current.from("rooms").select("host_user_id").eq("id", roomId).single();
+      if (room) { hostUserIdRef.current = room.host_user_id; setIsCreator(room.host_user_id === meRef.current.userId); }
       const { data: configs } = await supabaseRef.current.from("room_area_config").select("*").eq("room_id", roomId);
       if (configs) {
         areaConfigsRef.current.clear();

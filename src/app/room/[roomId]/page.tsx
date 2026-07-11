@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { getPeerId } from "@/lib/utils";
 
 const RoomView = dynamic(() => import("@/components/RoomView"), {
@@ -21,14 +22,33 @@ const RoomView = dynamic(() => import("@/components/RoomView"), {
 function RoomPageInner({ roomId }: { roomId: string }) {
   const searchParams = useSearchParams();
   const nameFromUrl = searchParams.get("name") || "";
-  const defaultName =
-    nameFromUrl ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("ruangsemu_name")
-      : "") ||
-    getPeerId();
+  const defaultName = nameFromUrl || getPeerId();
+  const [userId, setUserId] = useState<string | null>(null);
 
-  return <RoomView roomId={roomId} userName={defaultName} />;
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async (result: any) => {
+      const data = result.data;
+      if (data?.user) {
+        const uid = data.user.id;
+        const peerId = getPeerId();
+        const name =
+          data.user.user_metadata?.full_name ||
+          data.user.email?.split("@")[0] ||
+          "User";
+        const avatarUrl = data.user.user_metadata?.avatar_url;
+
+        // Ensure user row exists in public.users
+        await supabase.from("users").upsert(
+          { id: uid, peer_id: peerId, name, avatar_url: avatarUrl },
+          { onConflict: "id" },
+        );
+        setUserId(uid);
+      }
+    });
+  }, []);
+
+  return <RoomView roomId={roomId} userName={defaultName} userId={userId || ""} />;
 }
 
 export default function RoomPage({

@@ -9,6 +9,7 @@ interface MyRoom {
   id: string;
   name: string;
   memberCount: number;
+  hostUserId: string;
 }
 
 export default function LobbyPage() {
@@ -91,7 +92,7 @@ export default function LobbyPage() {
 
       const { data: rooms } = await supabase
         .from("rooms")
-        .select("id, name")
+        .select("id, name, host_user_id")
         .in("id", roomIds)
         .order("created_at", { ascending: false });
 
@@ -102,12 +103,12 @@ export default function LobbyPage() {
       }
 
       const roomsWithCount = await Promise.all(
-        (rooms as { id: string; name: string }[]).map(async (room) => {
+        (rooms as { id: string; name: string; host_user_id: string }[]).map(async (room) => {
           const { count } = await supabase
             .from("room_members")
             .select("*", { count: "exact", head: true })
             .eq("room_id", room.id);
-          return { id: room.id, name: room.name, memberCount: count ?? 0 };
+          return { id: room.id, name: room.name, memberCount: count ?? 0, hostUserId: room.host_user_id };
         }),
       );
 
@@ -145,11 +146,11 @@ export default function LobbyPage() {
       setStatusType("info");
 
       try {
-        const { error } = await supabase.from("rooms").insert({
-          id: code,
-          name: roomName,
-          host_peer_id: peerId,
-        });
+      const { error } = await supabase.from("rooms").insert({
+        id: code,
+        name: roomName,
+        host_user_id: user?.id,
+      });
         if (error) throw error;
 
         localStorage.setItem(
@@ -398,24 +399,28 @@ export default function LobbyPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 ml-3">
-                    <button
-                      onClick={() => handleDeleteRoom(room.id)}
-                      className="text-xs text-dim hover:text-danger transition px-2 py-1.5 rounded-lg hover:bg-surface2"
-                      title="Hapus grup"
-                    >
-                      Hapus
-                    </button>
-                    <button
-                      onClick={() => {
-                        setRenameTarget(room);
-                        setRenameValue(room.name);
-                        setShowRenameModal(true);
-                      }}
-                      className="text-xs text-dim hover:text-text transition px-2 py-1.5 rounded-lg hover:bg-surface2"
-                      title="Edit nama"
-                    >
-                      Edit
-                    </button>
+                    {user.id === room.hostUserId && (
+                      <>
+                        <button
+                          onClick={() => handleDeleteRoom(room.id)}
+                          className="text-xs text-dim hover:text-danger transition px-2 py-1.5 rounded-lg hover:bg-surface2"
+                          title="Hapus grup"
+                        >
+                          Hapus
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRenameTarget(room);
+                            setRenameValue(room.name);
+                            setShowRenameModal(true);
+                          }}
+                          className="text-xs text-dim hover:text-text transition px-2 py-1.5 rounded-lg hover:bg-surface2"
+                          title="Edit nama"
+                        >
+                          Edit
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={() => handleEnterRoom(room.id)}
                       className="bg-surface2 text-white px-4 py-2 rounded-lg text-sm hover:bg-surface3 transition"

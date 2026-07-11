@@ -7,19 +7,18 @@ export interface UserProfile {
 }
 
 export interface Room {
-  id: string; // "RM-XXXX"
+  id: string;
   name: string;
-  hostPeerId: string;
+  hostUserId: string;
   createdAt: string;
 }
 
 export interface RoomMember {
   id: string;
   room_id: string;
+  user_id: string;
   peer_id: string;
-  user_id?: string;
   name: string;
-  avatar_url?: string;
   x: number;
   y: number;
   current_area: string | null;
@@ -47,7 +46,7 @@ export interface HistoryMessage {
   id: string;
   room_id: string;
   area_id: string;
-  sender_peer_id: string;
+  sender_user_id: string;
   sender_name: string;
   content: string;
   created_at: string;

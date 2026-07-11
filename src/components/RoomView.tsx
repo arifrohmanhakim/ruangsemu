@@ -9,6 +9,7 @@ import { PinDialog } from "@/components/PinDialog";
 import { ProfileDialog } from "@/components/ProfileDialog";
 import { CreatorPanel } from "@/components/CreatorPanel";
 import { ChatPanel } from "@/components/ChatPanel";
+import { createClient } from "@/lib/supabase/client";
 import {
   MAP_W,
   MAP_H,
@@ -38,8 +39,29 @@ interface VisualBubble {
   createdAt: number;
 }
 
-function handleMsg(_sid: string, data: Record<string, unknown>) {
-  // Implementation will be below
+// Module-level refs for handleMsg to access chat/typing
+const chatRefModule = { current: null as ReturnType<typeof useChat> | null };
+const typingRefModule = { current: null as ReturnType<typeof useTyping> | null };
+let bumpChatVersion: (() => void) | null = null;
+
+function handleMsg(sid: string, data: Record<string, unknown>) {
+  const type = data.type as string;
+  const chat = chatRefModule.current;
+  const typing = typingRefModule.current;
+
+  if (type === "chat") {
+    chat?.addChat(data.text as string, data.name as string || sid, sid, data.time as string, false, data.areaId as string);
+    bumpChatVersion?.();
+    return;
+  }
+  if (type === "dm") {
+    chat?.handleDmReceived(sid, data.name as string || sid, data.text as string, data.time as string);
+    return;
+  }
+  if (type === "typing") {
+    typing?.handleTypingReceived(sid, data.name as string || sid, data.typing as boolean, data.areaId as string);
+    return;
+  }
 }
 
 export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
@@ -73,8 +95,9 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
     x: 0,
     y: 0,
   });
+  const [chatVersion, setChatVersion] = useState(0);
 
-  // Area config
+  // Realtime subscription for room_messages
   const areaConfigsRef = useRef<Map<string, AreaConfig>>(new Map());
   const unlockedRoomsRef = useRef<Set<string>>(new Set());
 
@@ -85,9 +108,11 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
   // Stable callbacks to prevent usePeerConnection effect re-run
   const handlePeerJoin = useCallback((pid: string, name: string, _area: string | null) => {
     chatRef.current?.addSysGlobal(`${name} masuk room 🚶`);
+    bumpChatVersion?.();
   }, []);
   const handlePeerLeave = useCallback((pid: string, name: string) => {
     chatRef.current?.addSysGlobal(`${name} keluar room 👋`);
+    bumpChatVersion?.();
   }, []);
 
   const peer = usePeerConnection({
@@ -99,10 +124,11 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
     onMessage: handleMsg,
   });
 
-  const { connState, handleLeaveRoom, meRef: peerMeRef, bc, peerStatesRef: peerPeerStatesRef, sendJson, connectionsRef, upsertMember } = peer;
+  const { connState, handleLeaveRoom, meRef: peerMeRef, bc, peerStatesRef: peerPeerStatesRef, sendJson, connectionsRef, upsertMember, version, onlineCount } = peer;
 
   // Typing
   const typing = useTyping(peerMeRef, bc);
+  typingRefModule.current = typing;
 
   // Chat
   const chat = useChat({
@@ -111,15 +137,53 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
     sendJson,
     connectionsRef,
   });
+  chatRefModule.current = chat;
+  bumpChatVersion = () => setChatVersion((v) => v + 1);
+
+  const handleSendChat = useCallback((text: string) => {
+    chat.sendChat(text);
+    setChatVersion((v) => v + 1);
+  }, [chat]);
+
+  const handleLoadHistory = useCallback((areaId: string) => {
+    chat.loadHistory(areaId);
+    setChatVersion((v) => v + 1);
+  }, [chat]);
 
   useEffect(() => {
     chatRef.current = chat;
   }, [chat]);
 
+  // Realtime subscription for room_messages (chat via Supabase)
+  useEffect(() => {
+    const sb = createClient();
+    const channel = sb
+      .channel(`room-msgs-${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "room_messages",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload: any) => {
+          const m = payload.new;
+          if (!m || m.sender_user_id === userId) return;
+          const c = chatRef.current;
+          if (!c) return;
+          c.addChat(m.content, m.sender_name, m.sender_user_id, new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), false, m.area_id);
+          setChatVersion((v) => v + 1);
+        },
+      )
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, [roomId, userId]);
+
   // Sync peerStates with peer.peerStatesRef for render
   useEffect(() => {
     setPeerStates(new Map(peerPeerStatesRef.current));
-  }, [peerPeerStatesRef]);
+  }, [version]);
 
   // Sync me with peer.meRef for render
   useEffect(() => {
@@ -193,12 +257,6 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
     [chat],
   );
 
-  // Area detection
-  useEffect(() => {
-    const detectedArea = detectRoom(me.x, me.y);
-    config.checkAreaAccess(detectedArea);
-  }, [me, config]);
-
   // Movement
   const keysRef = useRef<Set<string>>(new Set());
   const movePlayer = useCallback(() => {
@@ -228,6 +286,7 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
       const now = clockRef.current;
       if (now - lastBcRef.current > BROADCAST_MS) {
         bc({ type: "mv", x: peerMeRef.current.x, y: peerMeRef.current.y, name: me.name });
+        upsertMember();
         lastBcRef.current = now;
       }
     } else {
@@ -246,9 +305,12 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
   useEffect(() => {
     function loop() {
       movePlayer();
-      // Area check
-      const detectedArea = detectRoom(me.x, me.y);
+      // Area check (read from ref for latest position, not stale state)
+      const detectedArea = detectRoom(peerMeRef.current.x, peerMeRef.current.y);
       config.checkAreaAccess(detectedArea);
+      if (detectedArea !== me.currentArea) {
+        setMe((prev) => ({ ...prev, currentArea: detectedArea }));
+      }
       // Draw
       if (canvasRef.current) {
         const canvas = canvasRef.current;
@@ -524,7 +586,7 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
         <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", justifyContent: "space-between", pointerEvents: "none", zIndex: 10 }}>
           <div style={{ pointerEvents: "auto", background: "color-mix(in srgb, var(--color-bg) 85%, transparent)", backdropFilter: "blur(4px)", padding: "6px 12px", borderRadius: "12px", fontSize: "12px", color: "var(--color-dim)", display: "flex", alignItems: "center", gap: "8px" }}>
             🏠 <strong style={{ color: "var(--color-warning)" }}>{roomId}</strong>
-            <span id="onlineCount">0 online</span>
+            <span id="onlineCount">{onlineCount} online</span>
             <span style={{ color: "var(--color-warning)", fontWeight: 600 }}>{userName}</span>
             <span
               style={{
@@ -622,12 +684,13 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
           activeDmRef={chat.activeDmRef}
           dmTargetName={chat.dmTargetName}
           sendDm={chat.sendDm}
-          sendChat={chat.sendChat}
+          sendChat={handleSendChat}
           broadcastTyping={typing.broadcastTyping}
-          loadHistory={chat.loadHistory}
+          loadHistory={handleLoadHistory}
           syncRoomChat={() => {}}
           syncDmChat={() => {}}
           typingNamesRef={typing.typingNamesRef}
+          chatVersion={chatVersion}
         />
         <MemberList
           me={me}

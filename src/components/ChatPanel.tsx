@@ -21,6 +21,7 @@ interface ChatPanelProps {
   syncRoomChat: () => void;
   syncDmChat: () => void;
   typingNamesRef: { current: Map<string, string> };
+  chatVersion?: number;
 }
 
 export function ChatPanel({
@@ -28,9 +29,11 @@ export function ChatPanel({
   dmMessagesRef, me, peerStates, activeDmRef,
   dmTargetName, sendDm, sendChat, broadcastTyping,
   loadHistory, syncRoomChat, syncDmChat, typingNamesRef,
+  chatVersion,
 }: ChatPanelProps) {
   const [chatInput, setChatInput] = useState("");
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roomCount = peerStates.size + 1;
 
   // Sync room chat
   useEffect(() => {
@@ -67,7 +70,7 @@ export function ChatPanel({
       log.appendChild(div);
     }
     log.scrollTop = log.scrollHeight;
-  }, [area, chatsRef]);
+  }, [area, chatsRef, chatVersion]);
 
   // Sync DM chat
   useEffect(() => {
@@ -146,7 +149,7 @@ export function ChatPanel({
         ) : (
           <>
             <h3 style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-dim)", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-              💬 Ngobrol · <span id="roomCount" style={{ color: "var(--color-warning)" }}>0 orang</span>
+              💬 Ngobrol ·               <span id="roomCount" style={{ color: "var(--color-warning)" }}>{roomCount} orang</span>
             </h3>
             <div id="nearbyTags" style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px", minHeight: "20px" }}>
               <span style={{ color: "var(--color-dim)", fontSize: "12px" }}>👥</span>

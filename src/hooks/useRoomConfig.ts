@@ -122,7 +122,7 @@ export function useRoomConfig({
 
   function checkAreaAccess(detectedArea: string | null) {
     if (pinDialogRef.current && detectedArea && detectedArea !== pinDialogRef.current.areaId) { setPinDialog(null); setPinError(""); }
-    if (detectedArea !== meRef.current.currentArea && meRef.current.currentArea) {
+    if (detectedArea !== meRef.current.currentArea) {
       if (detectedArea) {
         const config = areaConfigsRef.current.get(detectedArea);
         if (config && config.visibility === "private" && !unlockedRoomsRef.current.has(detectedArea)) {
@@ -132,7 +132,7 @@ export function useRoomConfig({
           setPinDialog({ areaId: detectedArea, areaName: roomDef?.name || detectedArea }); setPinError(""); return;
         }
       }
-      // Normal area change
+      // Normal area change (including initial entry null -> area, or area -> corridor)
       meRef.current.currentArea = detectedArea;
       upsertMember();
     }

@@ -44,8 +44,8 @@ export function useChat({
     chatsRef.current.set(area, msgs);
   }
 
-  function addChat(text: string, sender: string, senderId: string, time: string | undefined, isSelf: boolean) {
-    const area = meRef.current.currentArea;
+  function addChat(text: string, sender: string, senderId: string, time: string | undefined, isSelf: boolean, areaId?: string) {
+    const area = areaId ?? meRef.current.currentArea;
     if (!area) return;
     const msgs = chatsRef.current.get(area) || [];
     msgs.push({ text, sender, senderId, time: time || clock(), isSelf, isSystem: false });
@@ -78,8 +78,8 @@ export function useChat({
         isSystem: false,
       }));
       const existing = chatsRef.current.get(areaId) || [];
-      const existingKeys = new Set(existing.map((m) => `${m.senderId}:${m.text}:${m.time}`));
-      const deduped = msgs.filter((m) => !existingKeys.has(`${m.senderId}:${m.text}:${m.time}`));
+      const existingKeys = new Set(existing.map((m) => `${m.text}:${m.time}`));
+      const deduped = msgs.filter((m) => !existingKeys.has(`${m.text}:${m.time}`));
       chatsRef.current.set(areaId, [...deduped, ...existing]);
     } catch {}
   }
@@ -92,7 +92,7 @@ export function useChat({
     if (!msg || !area) return;
     input.value = "";
     const tm = clock();
-    const payload = { type: "chat", text: msg, time: tm, areaId: area };
+    const payload = { type: "chat", text: msg, time: tm, areaId: area, name: meRef.current.name };
     for (const [, dc] of connectionsRef.current) if (dc?.open) sendJson(dc, payload);
     addChat(msg, meRef.current.name, meRef.current.peerId, tm, true);
     addVisualBubble(meRef.current.peerId);

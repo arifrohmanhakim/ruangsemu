@@ -50,6 +50,9 @@ export function usePeerConnection({
     currentArea: null as string | null,
   });
 
+  const versionRef = useRef(0);
+  const [version, setVersion] = useState(0);
+
   const restorePosition = useCallback(async () => {
     const members = await getExistingMembers();
     const saved = members.find((m) => m.user_id === meRef.current.userId);
@@ -116,6 +119,8 @@ export function usePeerConnection({
     const pid = dc.peer;
     if (connectionsRef.current.has(pid)) return;
     connectionsRef.current.set(pid, dc);
+    versionRef.current++;
+    setVersion(versionRef.current);
     setupDC(dc, pid);
 
     if (!peerStatesRef.current.has(pid)) {
@@ -151,6 +156,17 @@ export function usePeerConnection({
       return;
     }
     if (!data.type) return;
+
+    if (data.type === "mv") {
+      const state = peerStatesRef.current.get(sid);
+      if (state) {
+        state.x = data.x as number;
+        state.y = data.y as number;
+        if (data.name) state.name = data.name as string;
+      }
+      return;
+    }
+
     onMessage(sid, data);
   }
 
@@ -181,6 +197,8 @@ export function usePeerConnection({
         return;
       }
       connectionsRef.current.set(pid, dc);
+      versionRef.current++;
+      setVersion(versionRef.current);
       setupDC(dc, pid);
       if (!peerStatesRef.current.has(pid)) {
         const rp = randomPos();
@@ -194,6 +212,8 @@ export function usePeerConnection({
 
   function handleLeave(pid: string) {
     connectionsRef.current.delete(pid);
+    versionRef.current++;
+    setVersion(versionRef.current);
     const s = peerStatesRef.current.get(pid);
     const name = s?.name || pid;
     peerStatesRef.current.delete(pid);
@@ -237,6 +257,26 @@ export function usePeerConnection({
           const old = payload.old;
           if (old.user_id === meRef.current.userId) return;
           handleLeave(old.peer_id!);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "room_members",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload: RealtimePostgresChangesPayload<{ user_id: string; peer_id: string; name: string; x: number; y: number; current_area: string | null }>) => {
+          if (!payload.new || !("peer_id" in payload.new)) return;
+          const m = payload.new;
+          if (m.user_id === meRef.current.userId) return;
+          const state = peerStatesRef.current.get(m.peer_id);
+          if (state) {
+            state.x = m.x;
+            state.y = m.y;
+            if (m.name) state.name = m.name;
+          }
         },
       )
       .subscribe();
@@ -386,6 +426,8 @@ onSyncRequest?.();
     peerStatesRef,
     connectionsRef,
     connState,
+    version,
+    onlineCount: connectionsRef.current.size + 1,
     setMeArea: (area: string | null) => { meRef.current.currentArea = area; },
     upsertMember,
     bc,

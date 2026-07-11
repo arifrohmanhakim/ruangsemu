@@ -1,12 +1,13 @@
-import { createBrowserClient, SupabaseClient } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-export function createClient(): SupabaseClient {
+export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     // Return a mock client for build/preview when env vars not available
-    const mockClient: SupabaseClient = {
+    const mockClient = {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
         signInWithOAuth: async () => ({ error: new Error('Supabase not configured') }),
@@ -32,7 +33,7 @@ export function createClient(): SupabaseClient {
       channel: () => ({
         on: () => ({ subscribe: () => {} }),
       }),
-    } as SupabaseClient;
+    } as unknown as SupabaseClient;
     return mockClient;
   }
 

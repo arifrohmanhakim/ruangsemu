@@ -11,8 +11,6 @@ interface UseRoomConfigProps {
   areaConfigsRef: { current: Map<string, AreaConfig> };
   wallsRef: { current: WallSegment[] };
   unlockedRoomsRef: { current: Set<string> };
-  peerStatesRef: { current: Map<string, { x: number; y: number; name: string }> };
-  bc: (data: Record<string, unknown>) => void;
   upsertMember: () => Promise<void>;
   onConfigChange: () => void;
 }
@@ -23,10 +21,7 @@ export function useRoomConfig({
   areaConfigsRef,
   wallsRef,
   unlockedRoomsRef,
-  peerStatesRef,
-  bc,
   upsertMember,
-  onConfigChange,
 }: UseRoomConfigProps) {
   const [isCreator, setIsCreator] = useState(false);
   const [creatorPanelOpen, setCreatorPanelOpen] = useState(false);

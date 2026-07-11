@@ -11,8 +11,6 @@ const MAX_MSGS_PER_ROOM = 200;
 interface UseChatProps {
   roomId: string;
   meRef: { current: { peerId: string; name: string; currentArea: string | null } };
-  peerStatesRef: { current: Map<string, { x: number; y: number; name: string }> };
-  bc: (data: Record<string, unknown>) => void;
   sendJson: (dc: DataConnection, data: Record<string, unknown>) => void;
   connectionsRef: { current: Map<string, DataConnection> };
 }
@@ -20,8 +18,6 @@ interface UseChatProps {
 export function useChat({
   roomId,
   meRef,
-  peerStatesRef,
-  bc,
   sendJson,
   connectionsRef,
 }: UseChatProps) {
@@ -57,7 +53,7 @@ export function useChat({
     chatsRef.current.set(area, msgs);
   }
 
-  function addVisualBubble(pid: string) {
+  function addVisualBubble(_pid: string) {
     // Visual bubbles handled elsewhere
   }
 
@@ -164,7 +160,7 @@ export function useTyping(meRef: { current: { currentArea: string | null } }, bc
   const typingNamesRef = useRef<Map<string, string>>(new Map());
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const broadcastTypingRef = useRef<(isTyping: boolean) => void>();
+  const broadcastTypingRef = useRef<(isTyping: boolean) => void>(() => {});
 
   const broadcastTyping = useCallback((isTyping: boolean) => {
     const area = meRef.current.currentArea;

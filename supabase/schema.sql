@@ -54,6 +54,12 @@ create policy "Anyone can read rooms"
 create policy "Authenticated users can create rooms"
   on rooms for insert with check (auth.role() = 'authenticated' or auth.role() = 'anon');
 
+create policy "Anyone can update rooms"
+  on rooms for update using (true);
+
+create policy "Anyone can delete rooms"
+  on rooms for delete using (true);
+
 create policy "Anyone can read members"
   on room_members for select using (true);
 

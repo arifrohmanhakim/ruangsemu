@@ -37,7 +37,7 @@ interface VisualBubble {
   createdAt: number;
 }
 
-function handleMsg(sid: string, data: Record<string, unknown>) {
+function handleMsg(_sid: string, data: Record<string, unknown>) {
   // Implementation will be below
 }
 
@@ -79,28 +79,26 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
   const chatRef = useRef<ReturnType<typeof useChat> | null>(null);
   const configRef = useRef<ReturnType<typeof useRoomConfig> | null>(null);
 
-  // Peer connection
+// Peer connection
   const peer = usePeerConnection({
     roomId,
     userName,
-    onPeerJoin: (pid, name, area) =>
-      chatRef.current?.addSysGlobal(`${name} masuk room 🚶`),
-    onPeerLeave: (pid, name) =>
-      chatRef.current?.addSysGlobal(`${name} keluar room 👋`),
+    onPeerJoin: (pid, name, _area) => chatRef.current?.addSysGlobal(`${name} masuk room 🚶`),
+    onPeerLeave: (pid, name) => chatRef.current?.addSysGlobal(`${name} keluar room 👋`),
     onMessage: handleMsg,
   });
 
+  const { connState, handleLeaveRoom, meRef: peerMeRef, bc, peerStatesRef: peerPeerStatesRef, sendJson, connectionsRef, upsertMember } = peer;
+
   // Typing
-  const typing = useTyping(peer.meRef, peer.bc);
+  const typing = useTyping(peerMeRef, bc);
 
   // Chat
   const chat = useChat({
     roomId,
-    meRef: peer.meRef,
-    peerStatesRef: peer.peerStatesRef,
-    bc: peer.bc,
-    sendJson: peer.sendJson,
-    connectionsRef: peer.connectionsRef,
+    meRef: peerMeRef,
+    sendJson,
+    connectionsRef,
   });
 
   useEffect(() => {
@@ -109,30 +107,28 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
 
   // Sync peerStates with peer.peerStatesRef for render
   useEffect(() => {
-    setPeerStates(new Map(peer.peerStatesRef.current));
-  }, [peer.peerStatesRef]);
+    setPeerStates(new Map(peerPeerStatesRef.current));
+  }, [peerPeerStatesRef]);
 
   // Sync me with peer.meRef for render
   useEffect(() => {
     setMe({
-      peerId: peer.meRef.current.peerId,
-      name: peer.meRef.current.name,
-      currentArea: peer.meRef.current.currentArea,
-      x: peer.meRef.current.x,
-      y: peer.meRef.current.y,
+      peerId: peerMeRef.current.peerId,
+      name: peerMeRef.current.name,
+      currentArea: peerMeRef.current.currentArea,
+      x: peerMeRef.current.x,
+      y: peerMeRef.current.y,
     });
-  }, [peer.meRef]);
+  }, [peerMeRef]);
 
   // Room config
   const config = useRoomConfig({
     roomId,
-    meRef: peer.meRef,
+    meRef: peerMeRef,
     areaConfigsRef,
     wallsRef,
     unlockedRoomsRef,
-    peerStatesRef: peer.peerStatesRef,
-    bc: peer.bc,
-    upsertMember: peer.upsertMember,
+    upsertMember,
     onConfigChange: () => {},
   });
 
@@ -156,17 +152,17 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
 
   // Handle incoming messages
   useEffect(() => {
-    for (const [, dc] of peer.connectionsRef.current) {
+    for (const [, dc] of connectionsRef.current) {
       dc.on("data", (d: unknown) =>
         handleMsg(dc.peer as string, d as Record<string, unknown>),
       );
     }
-  }, [peer.connectionsRef]);
+  }, [connectionsRef]);
 
-  // Member click
+// Member click
   const handleMemberClick = useCallback(
     (pid: string) => {
-      const me = peer.meRef.current;
+      const me = peerMeRef.current;
       if (pid === me.peerId) {
         setProfileTarget({
           pid: me.peerId,
@@ -176,16 +172,11 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         });
         return;
       }
-      const s = peer.peerStatesRef.current.get(pid);
+      const s = peerPeerStatesRef.current.get(pid);
       if (!s) return;
-      setProfileTarget({
-        pid,
-        name: s.name || pid,
-        area: detectRoom(s.x, s.y),
-        isMe: false,
-      });
+      setProfileTarget({ pid, name: s.name || pid, area: detectRoom(s.x, s.y), isMe: false });
     },
-    [detectRoom],
+    [peerPeerStatesRef],
   );
 
   // Start DM
@@ -199,14 +190,12 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
 
   // Area detection
   useEffect(() => {
-    const me = peer.meRef.current;
     const detectedArea = detectRoom(me.x, me.y);
     config.checkAreaAccess(detectedArea);
-  }, [peer.meRef, config]);
+  }, [me, config]);
 
   // Movement
   const keysRef = useRef<Set<string>>(new Set());
-  const meRef = peer.meRef;
   const movePlayer = useCallback(() => {
     const keys = keysRef.current;
     let dx = 0,
@@ -225,13 +214,15 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         idleTimerRef.current = null;
       }
       wasMovingRef.current = true;
-      const me = meRef.current;
-      const result = tryMove(me.x, me.y, dx, dy, AVATAR_R, wallsRef.current);
-      me.x = Math.max(AVATAR_R, Math.min(MAP_W - AVATAR_R, result.x));
-      me.y = Math.max(AVATAR_R, Math.min(MAP_H - AVATAR_R, result.y));
+      // Use tryMove with peerMeRef for collision detection
+      const result = tryMove(peerMeRef.current.x, peerMeRef.current.y, dx, dy, AVATAR_R, wallsRef.current);
+      peerMeRef.current.x = Math.max(AVATAR_R, Math.min(MAP_W - AVATAR_R, result.x));
+      peerMeRef.current.y = Math.max(AVATAR_R, Math.min(MAP_H - AVATAR_R, result.y));
+      // Update me state for render
+      setMe((prev) => ({ ...prev, x: peerMeRef.current.x, y: peerMeRef.current.y }));
       const now = clockRef.current;
       if (now - lastBcRef.current > BROADCAST_MS) {
-        peer.bc({ type: "mv", x: me.x, y: me.y, name: me.name });
+        bc({ type: "mv", x: peerMeRef.current.x, y: peerMeRef.current.y, name: me.name });
         lastBcRef.current = now;
       }
     } else {
@@ -240,18 +231,17 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
         idleTimerRef.current = setTimeout(() => {
           idleTimerRef.current = null;
-          peer.upsertMember();
+          upsertMember();
         }, 3000);
       }
     }
-  }, [peer.bc, peer.upsertMember]);
+  }, [me.name, bc, upsertMember]);
 
   // Game loop
   useEffect(() => {
     function loop() {
       movePlayer();
       // Area check
-      const me = meRef.current;
       const detectedArea = detectRoom(me.x, me.y);
       config.checkAreaAccess(detectedArea);
       // Draw
@@ -533,12 +523,12 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
             <span id="onlineCount">0 online</span>
             <span className="text-warning font-semibold">{userName}</span>
             <span
-              className={`inline-block w-2 h-2 rounded-full ${peer.connState === "connected" ? "bg-green" : peer.connState === "connecting" ? "bg-warning animate-pulse" : "bg-danger"}`}
+              className={`inline-block w-2 h-2 rounded-full ${connState === "connected" ? "bg-green" : connState === "connecting" ? "bg-warning animate-pulse" : "bg-danger"}`}
             />
           </div>
           <div className="pointer-events-auto flex gap-1.5">
             <button
-              onClick={peer.handleLeaveRoom}
+              onClick={handleLeaveRoom}
               className="bg-bg/85 backdrop-blur-sm text-text px-3 py-1.5 rounded-xl text-xs hover:bg-surface2 transition"
             >
               🚪 Keluar
@@ -612,10 +602,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         <CreatorPanel
           isOpen={true}
           isCreator={config.isCreator}
-          roomId={roomId}
           areaConfigsRef={areaConfigsRef}
-          peerStatesRef={{ current: peerStates }}
-          onClose={() => {}}
           onToggleConfig={config.updateAreaConfig}
           onUpdateConfig={config.updateAreaConfig}
           onCreateRoom={config.handleCreateRoom}

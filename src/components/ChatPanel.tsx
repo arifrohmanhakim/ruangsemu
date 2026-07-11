@@ -10,8 +10,8 @@ interface ChatPanelProps {
   activeDm: string | null;
   setActiveDm: (v: string | null, targetName?: string) => void;
   dmMessagesRef: { current: Map<string, ChatMessage[]> };
-  meRef: { current: { peerId: string; name: string; currentArea: string | null } };
-  peerStatesRef: { current: Map<string, { name: string }> };
+  me: { peerId: string; name: string; currentArea: string | null };
+  peerStates: Map<string, { name: string }>;
   activeDmRef: { current: string | null };
   dmTargetName: string;
   sendDm: (text: string) => void;
@@ -25,7 +25,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({
   area, chatsRef, activeDm, setActiveDm,
-  dmMessagesRef, meRef, peerStatesRef, activeDmRef,
+  dmMessagesRef, me, peerStates, activeDmRef,
   dmTargetName, sendDm, sendChat, broadcastTyping,
   loadHistory, syncRoomChat, syncDmChat, typingNamesRef,
 }: ChatPanelProps) {
@@ -71,11 +71,10 @@ export function ChatPanel({
     if (!log) return;
     const target = activeDmRef.current;
     if (!target) { log.innerHTML = ""; return; }
-    const me = meRef.current;
     const convKey = [me.peerId, target].sort().join(":");
     const msgs = dmMessagesRef.current.get(convKey) || [];
     if (msgs.length === 0) {
-      const targetName = target === me.peerId ? me.name : peerStatesRef.current.get(target)?.name || target;
+      const targetName = target === me.peerId ? me.name : peerStates.get(target)?.name || target;
       log.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-dim text-sm text-center px-5"><b class="text-4xl mb-2.5">💌</b>Mulai DM dengan ${escHtml(targetName)}<br/>Pesan cuma terlihat kalian berdua</div>`;
       return;
     }

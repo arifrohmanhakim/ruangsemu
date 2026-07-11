@@ -45,5 +45,5 @@ export function MemberList({ me, peerStates, onMemberClick }: MemberListProps) {
 
   useEffect(() => { render(); }, [render]);
 
-  return <div ref={elRef} id="memberList" className="px-2 py-1.5" />;
+  return <div ref={elRef} id="memberList" style={{ padding: "4px 8px" }} />;
 }

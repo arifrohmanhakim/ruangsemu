@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { Paper, Text, Button, TextInput, Group, Stack } from "@mantine/core";
 
 interface PinDialogProps {
   isOpen: boolean;
@@ -23,25 +24,74 @@ export function PinDialog({ isOpen, areaName, error, onSubmit, onClose }: PinDia
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-      <div className="bg-surface rounded-2xl p-6 w-[300px] shadow-2xl border border-surface2 pointer-events-auto">
-        <h3 className="text-lg font-bold text-ngumpul text-center mb-2">🔒 {areaName}</h3>
-        <p className="text-dim text-xs text-center mb-4">Room ini private. Masukin PIN buat masuk.</p>
-        <input
-          ref={inputRef}
+    <div
+      style={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 50,
+        pointerEvents: "none",
+      }}
+    >
+      <Paper
+        p="lg"
+        radius="lg"
+        w={300}
+        shadow="xl"
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface2)", pointerEvents: "auto" }}
+      >
+        <Text ta="center" fw={700} c="var(--color-warning)" mb="sm">
+          🔒 {areaName}
+        </Text>
+        <Text ta="center" size="xs" c="var(--color-dim)" mb="md">
+          Room ini private. Masukin PIN buat masuk.
+        </Text>
+        <TextInput
+          ref={inputRef as any}
           type="password"
           maxLength={6}
           placeholder="******"
-          autoFocus
-          onKeyDown={e => { if (e.key === "Enter") onSubmit(); if (e.key === "Escape") onClose(); }}
-          className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm text-center tracking-widest text-lg outline-none focus:border-ngumpul transition placeholder:text-dim/30"
+          ta="center"
+          styles={{
+            input: {
+              background: "var(--color-bg)",
+              borderColor: "var(--color-surface2)",
+              color: "var(--color-text)",
+              textAlign: "center",
+              fontSize: "18px",
+              letterSpacing: "0.2em",
+            },
+          }}
+          onKeyDown={(e) => { if (e.key === "Enter") onSubmit(); if (e.key === "Escape") onClose(); }}
         />
-        {error && <p className="text-danger text-xs text-center mt-2">{error}</p>}
-        <div className="flex gap-2 mt-4">
-          <button onClick={onClose} className="flex-1 bg-ghost text-dim py-2.5 rounded-xl text-sm hover:text-text transition">Batal</button>
-          <button onClick={onSubmit} className="flex-1 bg-ngumpul text-black font-bold py-2.5 rounded-xl text-sm hover:bg-ngumpul-dark transition">Masuk</button>
-        </div>
-      </div>
+        {error && (
+          <Text ta="center" size="xs" c="var(--color-danger)" mt="sm">
+            {error}
+          </Text>
+        )}
+        <Group gap="sm" mt="md">
+          <Button
+            variant="subtle"
+            color="gray"
+            fullWidth
+            onClick={onClose}
+          >
+            Batal
+          </Button>
+          <Button
+            fullWidth
+            style={{
+              background: "var(--color-warning)",
+              color: "#000",
+              border: "none",
+            }}
+            onClick={onSubmit}
+          >
+            Masuk
+          </Button>
+        </Group>
+      </Paper>
     </div>
   );
 }

@@ -515,25 +515,40 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
 
   // Render
   return (
-    <div className="h-screen w-full flex flex-row room-layout">
+    <div className="room-layout" style={{ height: "100vh", width: "100%", display: "flex", flexDirection: "row" }}>
       {/* Canvas */}
-      <div className="canvas-wrap flex-1 relative bg-surface overflow-hidden">
-        <canvas ref={canvasRef} className="w-full h-full" />
+      <div className="canvas-wrap" style={{ flex: 1, position: "relative", background: "var(--color-surface)", overflow: "hidden" }}>
+        <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />
 
         {/* HUD top */}
-        <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between pointer-events-none z-10">
-          <div className="pointer-events-auto bg-bg/85 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs text-dim flex items-center gap-2">
-            🏠 <strong className="text-ngumpul">{roomId}</strong>
+        <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", justifyContent: "space-between", pointerEvents: "none", zIndex: 10 }}>
+          <div style={{ pointerEvents: "auto", background: "color-mix(in srgb, var(--color-bg) 85%, transparent)", backdropFilter: "blur(4px)", padding: "6px 12px", borderRadius: "12px", fontSize: "12px", color: "var(--color-dim)", display: "flex", alignItems: "center", gap: "8px" }}>
+            🏠 <strong style={{ color: "var(--color-warning)" }}>{roomId}</strong>
             <span id="onlineCount">0 online</span>
-            <span className="text-warning font-semibold">{userName}</span>
+            <span style={{ color: "var(--color-warning)", fontWeight: 600 }}>{userName}</span>
             <span
-              className={`inline-block w-2 h-2 rounded-full ${connState === "connected" ? "bg-green" : connState === "connecting" ? "bg-warning animate-pulse" : "bg-danger"}`}
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: connState === "connected" ? "var(--color-ruangsemu)" : connState === "connecting" ? "var(--color-warning)" : "var(--color-danger)",
+              }}
             />
           </div>
-          <div className="pointer-events-auto flex gap-1.5">
+          <div style={{ pointerEvents: "auto", display: "flex", gap: "6px" }}>
             <button
               onClick={handleLeaveRoom}
-              className="bg-bg/85 backdrop-blur-sm text-text px-3 py-1.5 rounded-xl text-xs hover:bg-surface2 transition"
+              style={{
+                background: "color-mix(in srgb, var(--color-bg) 85%, transparent)",
+                backdropFilter: "blur(4px)",
+                color: "var(--color-text)",
+                padding: "6px 12px",
+                borderRadius: "12px",
+                fontSize: "12px",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
               🚪 Keluar
             </button>
@@ -541,22 +556,38 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
         </div>
 
         {/* HUD bottom */}
-        <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10">
+        <div style={{ position: "absolute", bottom: 10, left: 10, pointerEvents: "none", zIndex: 10 }}>
           <div
             id="roomInfo"
-            className="bg-bg/85 backdrop-blur-sm px-4 py-1.5 rounded-xl text-sm font-semibold text-ngumpul border border-ngumpul/20"
-            style={{ display: "none" }}
+            style={{
+              display: "none",
+              background: "color-mix(in srgb, var(--color-bg) 85%, transparent)",
+              backdropFilter: "blur(4px)",
+              padding: "6px 16px",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 600,
+              color: "var(--color-warning)",
+              border: "1px solid color-mix(in srgb, var(--color-warning) 20%, transparent)",
+            }}
           />
           <div
             id="corridorInfo"
-            className="bg-bg/80 backdrop-blur-sm px-4 py-1.5 rounded-xl text-xs text-dim"
-            style={{ display: "none" }}
+            style={{
+              display: "none",
+              background: "color-mix(in srgb, var(--color-bg) 80%, transparent)",
+              backdropFilter: "blur(4px)",
+              padding: "6px 16px",
+              borderRadius: "12px",
+              fontSize: "12px",
+              color: "var(--color-dim)",
+            }}
           >
             🚶 Koridor — jalan ke pintu buat masuk room
           </div>
         </div>
-        <div className="absolute bottom-2.5 right-2.5 pointer-events-none z-10">
-          <div className="bg-bg/80 backdrop-blur-sm px-3 py-1 rounded-xl text-[10px] text-dim pointer-events-auto">
+        <div style={{ position: "absolute", bottom: 10, right: 10, pointerEvents: "none", zIndex: 10 }}>
+          <div style={{ background: "color-mix(in srgb, var(--color-bg) 80%, transparent)", backdropFilter: "blur(4px)", padding: "4px 12px", borderRadius: "12px", fontSize: "10px", color: "var(--color-dim)", pointerEvents: "auto" }}>
             ⬆️⬇️⬅️➡️ / WASD — jalan
           </div>
         </div>
@@ -579,7 +610,7 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
       </div>
 
       {/* Side Panel */}
-      <div className="side-panel w-[340px] max-w-[90vw] bg-surface border-l border-surface2 flex flex-col shrink-0">
+      <div className="side-panel" style={{ width: 340, maxWidth: "90vw", background: "var(--color-surface)", borderLeft: "1px solid var(--color-surface2)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <ChatPanel
           area={me.currentArea}
           chatsRef={chat.chatsRef}

@@ -39,27 +39,31 @@ export function ChatPanel({
     const msgs = area ? chatsRef.current.get(area) || [] : [];
     log.innerHTML = "";
     if (!area) {
-      log.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-dim text-sm text-center px-5"><b class="text-4xl mb-2.5">🚪</b>Masuk ke salah satu room<br/>buat mulai ngobrol!</div>`;
+      log.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--color-dim);font-size:14px;text-align:center;padding:0 20px"><b style="font-size:36px;margin-bottom:10px">🚪</b>Masuk ke salah satu room<br/>buat mulai ngobrol!</div>`;
       return;
     }
     if (msgs.length === 0) {
-      log.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-dim text-sm text-center px-5"><b class="text-4xl mb-2.5">💬</b>Belum ada pesan di room ini</div>`;
+      log.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--color-dim);font-size:14px;text-align:center;padding:0 20px"><b style="font-size:36px;margin-bottom:10px">💬</b>Belum ada pesan di room ini</div>`;
       return;
     }
     for (const m of msgs) {
       if (m.isSystem) {
         const div = document.createElement("div");
-        div.className = "text-center py-1";
-        div.innerHTML = `<span class="bg-surface2/40 px-3 py-1 rounded-full text-xs text-dim">${escHtml(m.text)}</span>`;
+        div.style.textAlign = "center";
+        div.style.padding = "4px 0";
+        div.innerHTML = `<span style="background:color-mix(in srgb,var(--color-surface2) 40%,transparent);padding:4px 12px;border-radius:999px;font-size:12px;color:var(--color-dim)">${escHtml(m.text)}</span>`;
         log.appendChild(div);
         continue;
       }
       const div = document.createElement("div");
-      div.className = `mb-1.5 animate-in flex flex-col ${m.isSelf ? "items-end" : "items-start"}`;
+      div.style.marginBottom = "6px";
+      div.style.display = "flex";
+      div.style.flexDirection = "column";
+      div.style.alignItems = m.isSelf ? "flex-end" : "flex-start";
       div.innerHTML = `
-        <div class="text-xs font-semibold ${m.isSelf ? "text-warning" : "text-ngumpul"}">${escHtml(m.sender)}</div>
-        <div class="inline-block px-3.5 py-2 rounded-xl text-sm leading-relaxed ${m.isSelf ? "bg-ngumpul rounded-br-md" : "bg-surface2 rounded-bl-md"}">${escHtml(m.text)}</div>
-        <div class="text-[10px] text-dim mt-0.5">${m.time}</div>`;
+        <div style="font-size:12px;font-weight:600;${m.isSelf ? "color:var(--color-warning)" : "color:var(--color-warning)"}">${escHtml(m.sender)}</div>
+        <div style="display:inline-block;padding:6px 14px;border-radius:12px;font-size:14px;line-height:1.5;${m.isSelf ? "background:var(--color-warning);color:#000;border-bottom-right-radius:4px" : "background:var(--color-surface2);color:var(--color-text);border-bottom-left-radius:4px"}">${escHtml(m.text)}</div>
+        <div style="font-size:10px;color:var(--color-dim);margin-top:2px">${m.time}</div>`;
       log.appendChild(div);
     }
     log.scrollTop = log.scrollHeight;
@@ -75,17 +79,19 @@ export function ChatPanel({
     const msgs = dmMessagesRef.current.get(convKey) || [];
     if (msgs.length === 0) {
       const targetName = target === me.peerId ? me.name : peerStates.get(target)?.name || target;
-      log.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-dim text-sm text-center px-5"><b class="text-4xl mb-2.5">💌</b>Mulai DM dengan ${escHtml(targetName)}<br/>Pesan cuma terlihat kalian berdua</div>`;
+      log.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--color-dim);font-size:14px;text-align:center;padding:0 20px"><b style="font-size:36px;margin-bottom:10px">💌</b>Mulai DM dengan ${escHtml(targetName)}<br/>Pesan cuma terlihat kalian berdua</div>`;
       return;
     }
     log.innerHTML = "";
     for (const m of msgs) {
       const div = document.createElement("div");
-      div.className = "flex " + (m.isSelf ? "justify-end" : "justify-start") + " mb-2";
+      div.style.display = "flex";
+      div.style.justifyContent = m.isSelf ? "flex-end" : "flex-start";
+      div.style.marginBottom = "8px";
       div.innerHTML = `
-        <div class="max-w-[75%] ${m.isSelf ? "bg-ngumpul text-black rounded-2xl rounded-br-md px-3 py-1.5" : "bg-surface2 text-text rounded-2xl rounded-bl-md px-3 py-1.5"}">
-          <div class="text-xs">${escHtml(m.sender)}</div>
-          <div class="text-sm">${escHtml(m.text)}</div>
+        <div style="max-width:75%;${m.isSelf ? "background:var(--color-warning);color:#000;border-radius:16px;border-bottom-right-radius:4px;padding:6px 12px" : "background:var(--color-surface2);color:var(--color-text);border-radius:16px;border-bottom-left-radius:4px;padding:6px 12px"}">
+          <div style="font-size:12px">${escHtml(m.sender)}</div>
+          <div style="font-size:14px">${escHtml(m.text)}</div>
         </div>`;
       log.appendChild(div);
     }
@@ -125,41 +131,83 @@ export function ChatPanel({
   }, [chatInput, activeDmRef, sendDm, sendChat]);
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-surface2 shrink-0">
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-surface2)", flexShrink: 0 }}>
         {activeDm ? (
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-dim flex items-center gap-2">
-              <button onClick={() => setActiveDm(null)} className="text-xs text-ngumpul hover:text-ngumpul-dark transition mr-1">← Kembali</button>
-              💌 DM · <span className="text-ngumpul">{dmTargetName}</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <h3 style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-dim)", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
+              <button onClick={() => setActiveDm(null)} style={{ fontSize: "12px", color: "var(--color-warning)", background: "none", border: "none", cursor: "pointer", marginRight: "4px" }}>
+                ← Kembali
+              </button>
+              💌 DM · <span style={{ color: "var(--color-warning)" }}>{dmTargetName}</span>
             </h3>
           </div>
         ) : (
           <>
-            <h3 className="text-xs font-semibold text-dim flex items-center gap-2">💬 Ngobrol · <span id="roomCount" className="text-ngumpul">0 orang</span></h3>
-            <div id="nearbyTags" className="flex flex-wrap gap-1.5 mt-1.5 min-h-5"><span className="text-dim text-xs">👥</span></div>
+            <h3 style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-dim)", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
+              💬 Ngobrol · <span id="roomCount" style={{ color: "var(--color-warning)" }}>0 orang</span>
+            </h3>
+            <div id="nearbyTags" style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px", minHeight: "20px" }}>
+              <span style={{ color: "var(--color-dim)", fontSize: "12px" }}>👥</span>
+            </div>
           </>
         )}
       </div>
 
       {/* Member list */}
-      <div className="border-b border-surface2 shrink-0 max-h-[180px] overflow-y-auto" style={{ display: activeDm ? "none" : undefined }}>
-        <div id="memberList" className="px-2 py-1.5" />
+      <div
+        style={{
+          borderBottom: "1px solid var(--color-surface2)",
+          flexShrink: 0,
+          maxHeight: "180px",
+          overflowY: "auto",
+          display: activeDm ? "none" : undefined,
+        }}
+      >
+        <div id="memberList" style={{ padding: "4px 8px" }} />
       </div>
 
       {/* Chat log — Room */}
-      <div id="chatLog" className="flex-1 overflow-y-auto px-4 py-2.5 min-h-0" style={{ display: activeDm ? "none" : undefined }} />
+      <div
+        id="chatLog"
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "10px 16px",
+          minHeight: 0,
+          display: activeDm ? "none" : undefined,
+        }}
+      />
 
       {/* Chat log — DM */}
-      <div id="dmChatLog" className="flex-1 overflow-y-auto px-4 py-2.5 min-h-0" style={{ display: activeDm ? undefined : "none" }} />
+      <div
+        id="dmChatLog"
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "10px 16px",
+          minHeight: 0,
+          display: activeDm ? undefined : "none",
+        }}
+      />
 
       {/* Typing indicator */}
-      <div id="typingIndicator" className="px-4 py-1 text-xs text-dim italic min-h-0" style={{ display: "none" }} />
+      <div
+        id="typingIndicator"
+        style={{
+          padding: "4px 16px",
+          fontSize: "12px",
+          color: "var(--color-dim)",
+          fontStyle: "italic",
+          minHeight: 0,
+          display: "none",
+        }}
+      />
 
       {/* Input */}
-      <div className="px-4 py-2.5 border-t border-surface2 shrink-0">
-        <div className="flex gap-2">
+      <div style={{ padding: "10px 16px", borderTop: "1px solid var(--color-surface2)", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <input
             id="chatInp"
             type="text"
@@ -169,16 +217,44 @@ export function ChatPanel({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             autoComplete="off"
-            className="flex-1 bg-bg border border-surface2 rounded-full px-4 py-2.5 text-text text-sm outline-none focus:border-ngumpul transition disabled:opacity-40"
             disabled={!area && !activeDm}
+            style={{
+              flex: 1,
+              background: "var(--color-bg)",
+              border: "1px solid var(--color-surface2)",
+              borderRadius: "999px",
+              padding: "10px 16px",
+              color: "var(--color-text)",
+              fontSize: "14px",
+              outline: "none",
+              opacity: !area && !activeDm ? 0.4 : 1,
+            }}
           />
           <button
             onClick={() => { if (activeDmRef.current) sendDm(chatInput); else sendChat(chatInput); }}
-            className="w-[42px] h-[42px] rounded-full bg-ngumpul text-black flex items-center justify-center text-lg shrink-0 hover:bg-ngumpul-dark transition disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={!chatInput.trim()}
-          >➤</button>
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: "50%",
+              background: "var(--color-warning)",
+              color: "#000",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "18px",
+              flexShrink: 0,
+              border: "none",
+              cursor: "pointer",
+              opacity: !chatInput.trim() ? 0.4 : 1,
+            }}
+          >
+            ➤
+          </button>
         </div>
-        <div className="text-[11px] text-dim mt-1 min-h-4">{activeDm ? "💌 Pesan hanya kalian berdua yang lihat" : "Masuk ke room buat mulai ngobrol"}</div>
+        <div style={{ fontSize: "11px", color: "var(--color-dim)", marginTop: "4px", minHeight: "16px" }}>
+          {activeDm ? "💌 Pesan hanya kalian berdua yang lihat" : "Masuk ke room buat mulai ngobrol"}
+        </div>
       </div>
     </div>
   );

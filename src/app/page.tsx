@@ -26,6 +26,13 @@ interface MyRoom {
   hostUserId: string;
 }
 
+const statusStyles: Record<string, React.CSSProperties> = {
+  info: { color: "var(--color-dim)" },
+  error: { color: "var(--color-danger)" },
+  success: { color: "var(--color-ruangsemu)" },
+  warn: { color: "var(--color-warning)" },
+};
+
 export default function LobbyPage() {
   const supabase = createClient();
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -36,8 +43,6 @@ export default function LobbyPage() {
     "info" | "error" | "success" | "warn"
   >("info");
   const [peerId, setPeerId] = useState<string>("");
-  const [hasRejoin, setHasRejoin] = useState(false);
-  const [rejoinRoomId, setRejoinRoomId] = useState("");
   const [myRooms, setMyRooms] = useState<MyRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -46,27 +51,9 @@ export default function LobbyPage() {
   const [renameTarget, setRenameTarget] = useState<MyRoom | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  const statusColors: Record<string, string> = {
-    info: "text-dim",
-    error: "text-danger",
-    success: "text-ruangsemu",
-    warn: "text-warning",
-  };
-
   useEffect(() => {
     const pid = getPeerId();
     setPeerId(pid);
-
-    try {
-      const stored = localStorage.getItem("ruangsemu_last_room");
-      if (stored) {
-        const data = JSON.parse(stored);
-        if (data.roomId) {
-          setHasRejoin(true);
-          setRejoinRoomId(data.roomId);
-        }
-      }
-    } catch {}
 
     supabase.auth.getUser().then((result: any) => {
       const data = result.data;
@@ -244,24 +231,6 @@ export default function LobbyPage() {
     }
   }, [roomCode, user?.name, peerId, supabase]);
 
-  const handleRejoin = useCallback(() => {
-    try {
-      const stored = localStorage.getItem("ruangsemu_last_room");
-      if (stored) {
-        const data = JSON.parse(stored);
-        const displayName = user?.name || peerId;
-        window.location.href = `/room/${data.roomId}?name=${encodeURIComponent(displayName)}`;
-      }
-    } catch {}
-  }, [user?.name, peerId]);
-
-  const clearRejoin = useCallback(() => {
-    localStorage.removeItem("ruangsemu_last_room");
-    setHasRejoin(false);
-    setStatus("✅ Data room dibuang");
-    setStatusType("success");
-  }, []);
-
   const handleEnterRoom = useCallback(
     (roomId: string) => {
       const displayName = user?.name || peerId;
@@ -276,7 +245,10 @@ export default function LobbyPage() {
       setStatus("⏳ Menghapus grup...");
       setStatusType("info");
       try {
-        const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+        const { error } = await supabase
+          .from("rooms")
+          .delete()
+          .eq("id", roomId);
         if (error) throw error;
         setMyRooms((prev) => prev.filter((r) => r.id !== roomId));
         setStatus("✅ Grup dihapus");
@@ -314,16 +286,22 @@ export default function LobbyPage() {
     [supabase],
   );
 
+  const BASE_STYLE: React.CSSProperties = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
   if (loading) {
     return (
-      <Container
-        size="xs"
-        className="h-screen flex items-center justify-center bg-bg"
-      >
+      <Container size="xs" style={{ ...BASE_STYLE, background: "var(--color-bg)" }}>
         <Stack align="center" gap="md">
-          <Text className="text-5xl">🚪</Text>
+          <Text fz={48}>🚪</Text>
           <Loader color="gray" />
-          <Text className="text-lg text-dim">RuangSemu...</Text>
+          <Text size="lg" c="var(--color-dim)">
+            RuangSemu...
+          </Text>
         </Stack>
       </Container>
     );
@@ -333,8 +311,8 @@ export default function LobbyPage() {
     return (
       <Container
         size="xs"
-        className="h-screen flex items-center justify-center bg-bg"
         style={{
+          ...BASE_STYLE,
           background:
             "radial-gradient(ellipse at 20% 50%, #1a1a3e 0%, #0f0f1a 70%)",
         }}
@@ -342,12 +320,26 @@ export default function LobbyPage() {
         <Paper
           p="xl"
           radius="lg"
-          className="bg-surface w-full max-w-sm text-center shadow-2xl"
+          bg="var(--color-surface)"
+          w="100%"
+          maw={380}
+          ta="center"
+          shadow="xl"
         >
-          <Text className="text-5xl mb-2">🚪</Text>
+          <Text fz={48} mb="xs">
+            🚪
+          </Text>
           <Title
             order={1}
-            className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent mb-6"
+            fz={30}
+            fw={800}
+            mb="lg"
+            style={{
+              background: "linear-gradient(to right, var(--color-ruangsemu), var(--color-accent-blue))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
           >
             Ruang Semu
           </Title>
@@ -356,7 +348,7 @@ export default function LobbyPage() {
             size="md"
             variant="default"
             leftSection={
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg style={{ width: 20, height: 20 }} viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -385,27 +377,32 @@ export default function LobbyPage() {
   }
 
   return (
-    <Box className="min-h-screen bg-bg p-4 md:p-6 flex justify-center">
-      <Container size="sm" className="w-full max-w-2xl">
+    <Box style={{ minHeight: "100vh", background: "var(--color-bg)", padding: "16px" }}>
+      <Container size={672} w="100%">
         {/* Top bar */}
         <Paper
           p="md"
           radius="lg"
-          className="bg-surface border border-surface2 mb-6"
+          bg="var(--color-surface)"
+          withBorder
+          mb="lg"
+          style={{ borderColor: "var(--color-surface2)" }}
         >
           <Group justify="space-between" wrap="nowrap">
             <Group gap="sm" wrap="nowrap">
-              <Text className="text-2xl">🚪</Text>
-              <Title order={4} className="text-white">
+              <Text fz={24}>🚪</Text>
+              <Title order={4} c="white">
                 Ruang semu
               </Title>
             </Group>
             <Group gap="sm" wrap="nowrap">
-              <Text className="text-xs text-dim hidden md:block">{peerId}</Text>
+              <Text size="xs" c="var(--color-dim)" visibleFrom="md">
+                {peerId}
+              </Text>
               <Button
                 variant="subtle"
                 size="compact-sm"
-                className="text-dim hover:text-danger"
+                color="gray"
                 onClick={handleLogout}
               >
                 Keluar
@@ -424,16 +421,28 @@ export default function LobbyPage() {
 
         {/* My rooms */}
         <Box mb="md">
-          <Text className="text-dim mb-3 text-sm font-medium">Grup kamu</Text>
+          <Text c="var(--color-dim)" mb="xs" size="sm" fw={500}>
+            Grup kamu
+          </Text>
+
           {roomsLoading ? (
-            <Group gap="xs" className="text-dim text-sm">
+            <Group gap="xs" c="var(--color-dim)">
               <Loader size="xs" color="gray" />
-              <Text>Memuat...</Text>
+              <Text size="sm">Memuat...</Text>
             </Group>
           ) : myRooms.length === 0 ? (
-            <Paper p="xl" className="bg-surface rounded-xl border border-surface2 text-center">
-              <Text className="text-dim text-sm">Belum ada grup</Text>
-              <Text className="text-dim/50 text-xs mt-1">
+            <Paper
+              p="xl"
+              bg="var(--color-surface)"
+              radius="lg"
+              withBorder
+              ta="center"
+              style={{ borderColor: "var(--color-surface2)" }}
+            >
+              <Text size="sm" c="var(--color-dim)">
+                Belum ada grup
+              </Text>
+              <Text size="xs" c="var(--color-dim)" style={{ opacity: 0.5, marginTop: 4, fontFamily: "inherit" }}>
                 Buat grup baru atau gabung dengan kode undangan
               </Text>
             </Paper>
@@ -443,18 +452,19 @@ export default function LobbyPage() {
                 <Paper
                   key={room.id}
                   p="sm"
-                  className="bg-surface border border-surface2 hover:border-surface3 transition"
+                  bg="var(--color-surface)"
+                  withBorder
+                  style={{ borderColor: "var(--color-surface2)" }}
                 >
                   <Group justify="space-between" wrap="nowrap">
-                    <Box className="min-w-0 flex-1">
-                      <Text className="font-semibold text-white text-sm truncate">
-                        {room.name}
+                    <Box style={{ minWidth: 0, flex: 1 }}>
+                      <Text fw={600} c="white" size="sm" truncate style={{ maxWidth: "100%" }}>                        {room.name}
                       </Text>
-                      <Text className="text-xs text-dim">
+                      <Text size="xs" c="var(--color-dim)">
                         {room.id} · {room.memberCount} anggota
                       </Text>
                     </Box>
-                    <Group gap="xs" wrap="nowrap" className="shrink-0">
+                    <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
                       {user.id === room.hostUserId && (
                         <>
                           <Button
@@ -481,9 +491,12 @@ export default function LobbyPage() {
                       )}
                       <Button
                         variant="filled"
-                        color="dark"
                         size="compact-sm"
-                        className="bg-surface2 text-white"
+                        style={{
+                          background: "var(--color-surface2)",
+                          color: "white",
+                          border: "none",
+                        }}
                         onClick={() => handleEnterRoom(room.id)}
                       >
                         Buka
@@ -496,49 +509,21 @@ export default function LobbyPage() {
           )}
         </Box>
 
-        {/* Rejoin card */}
-        {hasRejoin && (
-          <Paper p="sm" className="bg-surface2/30 border border-warning/30 mb-6">
-            <Text className="text-xs text-warning font-semibold mb-1">
-              🔄 Kamu punya room sebelumnya!
-            </Text>
-            <Text className="text-lg font-bold font-mono text-ruangsemu tracking-wider mb-2">
-              {rejoinRoomId}
-            </Text>
-            <Group gap="sm">
-              <Button
-                fullWidth
-                className="bg-ruangsemu text-black font-bold"
-                style={{ background: "var(--color-ruangsemu) !important", color: "#000 !important" }}
-                onClick={handleRejoin}
-              >
-                🚪 Masuk Lagi
-              </Button>
-              <Button
-                fullWidth
-                variant="subtle"
-                color="gray"
-                onClick={clearRejoin}
-              >
-                Buang
-              </Button>
-            </Group>
-          </Paper>
-        )}
-
         {/* Create / Join */}
         <Group gap="sm" mb="md" align="end">
           <Button
             fullWidth
-            variant="filled"
-            color="dark"
-            className="bg-warning text-black font-bold hover:bg-amber-500"
-            style={{ background: "var(--color-warning) !important", color: "#000 !important" }}
+            size="md"
+            style={{
+              background: "var(--color-warning)",
+              color: "#000",
+              border: "none",
+              flex: 2,
+            }}
             onClick={() => {
               setNewRoomName(user?.name || peerId);
               setShowCreateModal(true);
             }}
-            flex={2}
           >
             ✨ Buat grup
           </Button>
@@ -548,13 +533,21 @@ export default function LobbyPage() {
             onChange={(e) => setRoomCode(e.currentTarget.value)}
             onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
             style={{ flex: 1 }}
-            classNames={{ input: "bg-surface2 text-white" }}
-            styles={{ input: { border: "1px solid var(--color-surface2)" } }}
+            styles={{
+              input: {
+                background: "var(--color-surface2)",
+                color: "white",
+                border: "1px solid var(--color-surface2)",
+              },
+            }}
           />
           <Button
-            variant="filled"
-            className="bg-ruangsemu text-black font-bold"
-            style={{ background: "var(--color-ruangsemu) !important", color: "#000 !important" }}
+            size="md"
+            style={{
+              background: "var(--color-ruangsemu)",
+              color: "#000",
+              border: "none",
+            }}
             onClick={handleJoinRoom}
           >
             Gabung
@@ -562,7 +555,7 @@ export default function LobbyPage() {
         </Group>
 
         {/* Status */}
-        <Text className={`text-xs text-center ${statusColors[statusType]}`}>
+        <Text ta="center" size="xs" style={statusStyles[statusType]}>
           {status}
         </Text>
       </Container>
@@ -572,15 +565,15 @@ export default function LobbyPage() {
         opened={showRenameModal}
         onClose={() => setShowRenameModal(false)}
         title="Edit nama grup"
-        classNames={{
-          content: "bg-surface",
-          header: "bg-surface",
-          title: "text-white font-bold",
+        styles={{
+          content: { background: "var(--color-surface)" },
+          header: { background: "var(--color-surface)" },
+          title: { color: "white", fontWeight: 700 },
         }}
       >
         {renameTarget && (
           <>
-            <Text className="text-xs text-dim mb-3 font-mono">
+            <Text size="xs" c="var(--color-dim)" mb="sm" style={{ fontFamily: "monospace" }}>
               {renameTarget.id}
             </Text>
             <TextInput
@@ -588,7 +581,13 @@ export default function LobbyPage() {
               maxLength={50}
               value={renameValue}
               onChange={(e) => setRenameValue(e.currentTarget.value)}
-              classNames={{ input: "bg-bg border-surface2 text-text" }}
+              styles={{
+                input: {
+                  background: "var(--color-bg)",
+                  borderColor: "var(--color-surface2)",
+                  color: "var(--color-text)",
+                },
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   setShowRenameModal(false);
@@ -608,8 +607,11 @@ export default function LobbyPage() {
               </Button>
               <Button
                 fullWidth
-                className="bg-ruangsemu text-black font-bold"
-                style={{ background: "var(--color-ruangsemu) !important", color: "#000 !important" }}
+                style={{
+                  background: "var(--color-ruangsemu)",
+                  color: "#000",
+                  border: "none",
+                }}
                 onClick={() => {
                   setShowRenameModal(false);
                   handleRenameRoom(renameTarget.id, renameValue);
@@ -627,10 +629,10 @@ export default function LobbyPage() {
         opened={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         title="Buat grup baru"
-        classNames={{
-          content: "bg-surface",
-          header: "bg-surface",
-          title: "text-white font-bold",
+        styles={{
+          content: { background: "var(--color-surface)" },
+          header: { background: "var(--color-surface)" },
+          title: { color: "white", fontWeight: 700 },
         }}
       >
         <TextInput
@@ -638,7 +640,13 @@ export default function LobbyPage() {
           maxLength={50}
           value={newRoomName}
           onChange={(e) => setNewRoomName(e.currentTarget.value)}
-          classNames={{ input: "bg-bg border-surface2 text-text" }}
+          styles={{
+            input: {
+              background: "var(--color-bg)",
+              borderColor: "var(--color-surface2)",
+              color: "var(--color-text)",
+            },
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               setShowCreateModal(false);
@@ -658,8 +666,11 @@ export default function LobbyPage() {
           </Button>
           <Button
             fullWidth
-            className="bg-warning text-black font-bold"
-            style={{ background: "var(--color-warning) !important", color: "#000 !important" }}
+            style={{
+              background: "var(--color-warning)",
+              color: "#000",
+              border: "none",
+            }}
             onClick={() => {
               setShowCreateModal(false);
               handleCreateRoom(newRoomName);

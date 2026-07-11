@@ -119,7 +119,7 @@ export function Canvas({
     return () => window.removeEventListener("resize", resizeCanvas);
   }, [resizeCanvas]);
 
-  return <canvas ref={canvasRef} className="w-full h-full" />;
+  return <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />;
 }
 
 // Draw helpers - will be memoized in parent

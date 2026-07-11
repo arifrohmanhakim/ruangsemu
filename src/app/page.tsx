@@ -15,7 +15,6 @@ export default function LobbyPage() {
   const supabase = createClient();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [status, setStatus] = useState("⏳ Nyiapin...");
   const [statusType, setStatusType] = useState<
@@ -36,8 +35,6 @@ export default function LobbyPage() {
   useEffect(() => {
     const pid = getPeerId();
     setPeerId(pid);
-    const savedName = localStorage.getItem("ruangsemu_name") || "";
-    setName(savedName);
 
     try {
       const stored = localStorage.getItem("ruangsemu_last_room");
@@ -63,24 +60,12 @@ export default function LobbyPage() {
           avatarUrl: data.user.user_metadata?.avatar_url,
           peerId: pid,
         });
-        if (!savedName) {
-          setName(
-            data.user.user_metadata?.full_name ||
-              data.user.email?.split("@")[0] ||
-              "",
-          );
-        }
       }
       setLoading(false);
       setStatus("✅ Siap!");
       setStatusType("success");
     });
   }, []);
-
-  // Save name
-  useEffect(() => {
-    if (name) localStorage.setItem("ruangsemu_name", name);
-  }, [name]);
 
   // Fetch my rooms when peerId is ready
   useEffect(() => {
@@ -151,33 +136,35 @@ export default function LobbyPage() {
     setStatusType("success");
   }, [supabase.auth]);
 
-  const handleCreateRoom = useCallback(async (customName?: string) => {
-    const displayName = name.trim() || peerId;
-    const roomName = customName?.trim() || `${displayName}'s Room`;
-    const code = generateCode();
-    setStatus("⏳ Bikin room...");
-    setStatusType("info");
+  const handleCreateRoom = useCallback(
+    async (customName?: string) => {
+      const displayName = user?.name || peerId;
+      const roomName = customName?.trim() || `${displayName}'s Room`;
+      const code = generateCode();
+      setStatus("⏳ Bikin room...");
+      setStatusType("info");
 
-    try {
-      const { error } = await supabase.from("rooms").insert({
-        id: code,
-        name: roomName,
-        host_peer_id: peerId,
-      });
-      if (error) throw error;
+      try {
+        const { error } = await supabase.from("rooms").insert({
+          id: code,
+          name: roomName,
+          host_peer_id: peerId,
+        });
+        if (error) throw error;
 
-      localStorage.setItem("ruangsemu_name", displayName);
-      localStorage.setItem(
-        "ruangsemu_last_room",
-        JSON.stringify({ roomId: code, peerId, name: displayName }),
-      );
+        localStorage.setItem(
+          "ruangsemu_last_room",
+          JSON.stringify({ roomId: code, peerId, name: displayName }),
+        );
 
-      window.location.href = `/room/${code}?name=${encodeURIComponent(displayName)}`;
-    } catch (err: any) {
-      setStatus("❌ " + (err.message || "Gagal bikin room"));
-      setStatusType("error");
-    }
-  }, [name, peerId, supabase]);
+        window.location.href = `/room/${code}?name=${encodeURIComponent(displayName)}`;
+      } catch (err: any) {
+        setStatus("❌ " + (err.message || "Gagal bikin room"));
+        setStatusType("error");
+      }
+    },
+    [user?.name, peerId, supabase],
+  );
 
   const handleJoinRoom = useCallback(async () => {
     const input = roomCode.trim().toUpperCase();
@@ -187,7 +174,7 @@ export default function LobbyPage() {
       return;
     }
 
-    const displayName = name.trim() || peerId;
+    const displayName = user?.name || peerId;
     setStatus("⏳ Mencari room...");
     setStatusType("info");
 
@@ -204,7 +191,6 @@ export default function LobbyPage() {
         return;
       }
 
-      localStorage.setItem("ruangsemu_name", displayName);
       localStorage.setItem(
         "ruangsemu_last_room",
         JSON.stringify({ roomId: input, peerId, name: displayName }),
@@ -215,18 +201,18 @@ export default function LobbyPage() {
       setStatus("❌ " + (err.message || "Gagal cari room"));
       setStatusType("error");
     }
-  }, [roomCode, name, peerId, supabase]);
+  }, [roomCode, user?.name, peerId, supabase]);
 
   const handleRejoin = useCallback(() => {
     try {
       const stored = localStorage.getItem("ruangsemu_last_room");
       if (stored) {
         const data = JSON.parse(stored);
-        const displayName = name.trim() || peerId;
+        const displayName = user?.name || peerId;
         window.location.href = `/room/${data.roomId}?name=${encodeURIComponent(displayName)}`;
       }
     } catch {}
-  }, [name, peerId]);
+  }, [user?.name, peerId]);
 
   const clearRejoin = useCallback(() => {
     localStorage.removeItem("ruangsemu_last_room");
@@ -235,48 +221,60 @@ export default function LobbyPage() {
     setStatusType("success");
   }, []);
 
-  const handleEnterRoom = useCallback((roomId: string) => {
-    const displayName = name.trim() || peerId;
-    window.location.href = `/room/${roomId}?name=${encodeURIComponent(displayName)}`;
-  }, [name, peerId]);
+  const handleEnterRoom = useCallback(
+    (roomId: string) => {
+      const displayName = user?.name || peerId;
+      window.location.href = `/room/${roomId}?name=${encodeURIComponent(displayName)}`;
+    },
+    [user?.name, peerId],
+  );
 
-  const handleDeleteRoom = useCallback(async (roomId: string) => {
-    if (!confirm("Hapus grup ini?")) return;
-    setStatus("⏳ Menghapus grup...");
-    setStatusType("info");
-    try {
-      const { error } = await supabase.from("rooms").delete().eq("id", roomId);
-      if (error) throw error;
-      setMyRooms((prev) => prev.filter((r) => r.id !== roomId));
-      setStatus("✅ Grup dihapus");
-      setStatusType("success");
-    } catch (err: any) {
-      setStatus("❌ " + (err.message || "Gagal menghapus grup"));
-      setStatusType("error");
-    }
-  }, [supabase]);
+  const handleDeleteRoom = useCallback(
+    async (roomId: string) => {
+      if (!confirm("Hapus grup ini?")) return;
+      setStatus("⏳ Menghapus grup...");
+      setStatusType("info");
+      try {
+        const { error } = await supabase
+          .from("rooms")
+          .delete()
+          .eq("id", roomId);
+        if (error) throw error;
+        setMyRooms((prev) => prev.filter((r) => r.id !== roomId));
+        setStatus("✅ Grup dihapus");
+        setStatusType("success");
+      } catch (err: any) {
+        setStatus("❌ " + (err.message || "Gagal menghapus grup"));
+        setStatusType("error");
+      }
+    },
+    [supabase],
+  );
 
-  const handleRenameRoom = useCallback(async (roomId: string, newName: string) => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    setStatus("⏳ Mengubah nama...");
-    setStatusType("info");
-    try {
-      const { error } = await supabase
-        .from("rooms")
-        .update({ name: trimmed })
-        .eq("id", roomId);
-      if (error) throw error;
-      setMyRooms((prev) =>
-        prev.map((r) => (r.id === roomId ? { ...r, name: trimmed } : r)),
-      );
-      setStatus("✅ Nama grup diubah");
-      setStatusType("success");
-    } catch (err: any) {
-      setStatus("❌ " + (err.message || "Gagal mengubah nama"));
-      setStatusType("error");
-    }
-  }, [supabase]);
+  const handleRenameRoom = useCallback(
+    async (roomId: string, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed) return;
+      setStatus("⏳ Mengubah nama...");
+      setStatusType("info");
+      try {
+        const { error } = await supabase
+          .from("rooms")
+          .update({ name: trimmed })
+          .eq("id", roomId);
+        if (error) throw error;
+        setMyRooms((prev) =>
+          prev.map((r) => (r.id === roomId ? { ...r, name: trimmed } : r)),
+        );
+        setStatus("✅ Nama grup diubah");
+        setStatusType("success");
+      } catch (err: any) {
+        setStatus("❌ " + (err.message || "Gagal mengubah nama"));
+        setStatusType("error");
+      }
+    },
+    [supabase],
+  );
 
   const statusColors = {
     info: "text-dim",
@@ -289,7 +287,7 @@ export default function LobbyPage() {
     return (
       <div className="h-screen flex items-center justify-center bg-bg">
         <div className="text-center text-dim">
-          <div className="text-5xl mb-4">🐱</div>
+          <div className="text-5xl mb-4">�</div>
           <div className="text-lg animate-pulse">RuangSemu...</div>
         </div>
       </div>
@@ -307,7 +305,7 @@ export default function LobbyPage() {
         }}
       >
         <div className="bg-surface rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl mx-4">
-          <div className="text-5xl mb-2">🐱</div>
+          <div className="text-5xl mb-2">�</div>
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent mb-6">
             Ruang Semu
           </h1>
@@ -347,7 +345,7 @@ export default function LobbyPage() {
         {/* Top bar */}
         <div className="flex justify-between items-center mb-6 bg-surface p-3 md:p-4 rounded-2xl border border-surface2">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🐱</span>
+            <span className="text-2xl">�</span>
             <h1 className="text-lg font-bold text-white">Ruang semu</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -370,29 +368,6 @@ export default function LobbyPage() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Name input + copy ID */}
-        <div className="flex flex-col md:flex-row gap-3 mb-6">
-          <input
-            type="text"
-            placeholder="Nama kamu..."
-            maxLength={20}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="flex-1 bg-surface border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ruangsemu transition outline-none placeholder:text-dim/50"
-          />
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(peerId);
-              setStatus("📋 ID disalin!");
-              setStatusType("success");
-              setTimeout(() => setStatusType("info"), 2000);
-            }}
-            className="bg-surface2 text-dim text-sm px-4 py-3 rounded-xl hover:text-text transition whitespace-nowrap"
-          >
-            📋 {peerId}
-          </button>
         </div>
 
         {/* My rooms */}
@@ -484,7 +459,7 @@ export default function LobbyPage() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
           <button
             onClick={() => {
-              setNewRoomName(name.trim() || peerId);
+              setNewRoomName(user?.name || peerId);
               setShowCreateModal(true);
             }}
             className="md:col-span-2 bg-warning text-black font-bold py-3 px-5 rounded-xl hover:bg-amber-500 transition text-sm"
@@ -510,7 +485,9 @@ export default function LobbyPage() {
         </div>
 
         {/* Status */}
-        <div className={`text-xs min-h-5 text-center ${statusColors[statusType]}`}>
+        <div
+          className={`text-xs min-h-5 text-center ${statusColors[statusType]}`}
+        >
           {status}
         </div>
       </div>
@@ -519,8 +496,12 @@ export default function LobbyPage() {
       {showRenameModal && renameTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-surface2">
-            <h3 className="text-lg font-bold text-white mb-4">Edit nama grup</h3>
-            <div className="text-xs text-dim mb-3 font-mono">{renameTarget.id}</div>
+            <h3 className="text-lg font-bold text-white mb-4">
+              Edit nama grup
+            </h3>
+            <div className="text-xs text-dim mb-3 font-mono">
+              {renameTarget.id}
+            </div>
             <input
               type="text"
               placeholder="Nama grup"
@@ -561,7 +542,9 @@ export default function LobbyPage() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-surface2">
-            <h3 className="text-lg font-bold text-white mb-4">Buat grup baru</h3>
+            <h3 className="text-lg font-bold text-white mb-4">
+              Buat grup baru
+            </h3>
             <input
               type="text"
               placeholder="Nama grup"

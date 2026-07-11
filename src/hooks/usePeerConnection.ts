@@ -41,7 +41,7 @@ export function usePeerConnection({
 
   const meRef = useRef({
     x: 200,
-    y: 0,
+    y: 500,
     peerId: "",
     name: userName,
     currentArea: null as string | null,

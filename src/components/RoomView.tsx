@@ -420,8 +420,7 @@ export default function RoomView({ roomId, userName }: RoomViewProps) {
         for (const [pid, s] of peer.peerStatesRef.current)
           drawAvatar(ctx, s.x, s.y, s.name || pid, pid, false);
         // Self
-        const me = peer.meRef.current;
-        drawAvatar(ctx, me.x, me.y, me.name || me.peerId, me.peerId, true);
+        drawAvatar(ctx, peer.meRef.current.x, peer.meRef.current.y, peer.meRef.current.name || peer.meRef.current.peerId, peer.meRef.current.peerId, true);
 
         // Visual bubbles
         const now = clockRef.current;

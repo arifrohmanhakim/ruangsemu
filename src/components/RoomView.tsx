@@ -308,9 +308,9 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
       // Area check (read from ref for latest position, not stale state)
       const detectedArea = detectRoom(peerMeRef.current.x, peerMeRef.current.y);
       config.checkAreaAccess(detectedArea);
-      if (detectedArea !== me.currentArea) {
-        setMe((prev) => ({ ...prev, currentArea: detectedArea }));
-      }
+      setMe((prev) =>
+        prev.currentArea === detectedArea ? prev : { ...prev, currentArea: detectedArea },
+      );
       // Draw
       if (canvasRef.current) {
         const canvas = canvasRef.current;

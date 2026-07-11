@@ -61,6 +61,12 @@ export default function LobbyPage() {
           avatarUrl: data.user.user_metadata?.avatar_url,
           peerId: pid,
         });
+
+        // Ensure users row exists
+        supabase.from("users").upsert(
+          { id: data.user.id, peer_id: pid, name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "User", avatar_url: data.user.user_metadata?.avatar_url },
+          { onConflict: "id" },
+        ).then(() => {});
       }
       setLoading(false);
       setStatus("✅ Siap!");
@@ -103,13 +109,20 @@ export default function LobbyPage() {
       }
 
       const roomsWithCount = await Promise.all(
-        (rooms as { id: string; name: string; host_user_id: string }[]).map(async (room) => {
-          const { count } = await supabase
-            .from("room_members")
-            .select("*", { count: "exact", head: true })
-            .eq("room_id", room.id);
-          return { id: room.id, name: room.name, memberCount: count ?? 0, hostUserId: room.host_user_id };
-        }),
+        (rooms as { id: string; name: string; host_user_id: string }[]).map(
+          async (room) => {
+            const { count } = await supabase
+              .from("room_members")
+              .select("*", { count: "exact", head: true })
+              .eq("room_id", room.id);
+            return {
+              id: room.id,
+              name: room.name,
+              memberCount: count ?? 0,
+              hostUserId: room.host_user_id,
+            };
+          },
+        ),
       );
 
       setMyRooms(roomsWithCount);
@@ -146,11 +159,11 @@ export default function LobbyPage() {
       setStatusType("info");
 
       try {
-      const { error } = await supabase.from("rooms").insert({
-        id: code,
-        name: roomName,
-        host_user_id: user?.id,
-      });
+        const { error } = await supabase.from("rooms").insert({
+          id: code,
+          name: roomName,
+          host_user_id: user?.id,
+        });
         if (error) throw error;
 
         localStorage.setItem(
@@ -288,7 +301,7 @@ export default function LobbyPage() {
     return (
       <div className="h-screen flex items-center justify-center bg-bg">
         <div className="text-center text-dim">
-          <div className="text-5xl mb-4">�</div>
+          <div className="text-5xl mb-4">🚪</div>
           <div className="text-lg animate-pulse">RuangSemu...</div>
         </div>
       </div>
@@ -306,7 +319,7 @@ export default function LobbyPage() {
         }}
       >
         <div className="bg-surface rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl mx-4">
-          <div className="text-5xl mb-2">�</div>
+          <div className="text-5xl mb-2">🚪</div>
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent mb-6">
             Ruang Semu
           </h1>
@@ -346,7 +359,7 @@ export default function LobbyPage() {
         {/* Top bar */}
         <div className="flex justify-between items-center mb-6 bg-surface p-3 md:p-4 rounded-2xl border border-surface2">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">�</span>
+            <span className="text-2xl">🚪</span>
             <h1 className="text-lg font-bold text-white">Ruang semu</h1>
           </div>
           <div className="flex items-center gap-3">

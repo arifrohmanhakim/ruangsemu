@@ -37,6 +37,8 @@ create trigger on_auth_user_created
 alter table users enable row level security;
 create policy "Anyone can read users"
   on users for select using (true);
+create policy "Users can insert own row"
+  on users for insert with check (auth.uid() = id);
 create policy "Users can update own row"
   on users for update using (auth.uid() = id);
 

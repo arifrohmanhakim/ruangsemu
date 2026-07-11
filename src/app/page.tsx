@@ -180,6 +180,16 @@ export default function LobbyPage() {
         });
         if (error) throw error;
 
+        await supabase.from("room_members").upsert(
+          {
+            room_id: code,
+            user_id: user?.id,
+            peer_id: peerId,
+            name: displayName,
+          },
+          { onConflict: "room_id,user_id" },
+        );
+
         localStorage.setItem(
           "ruangsemu_last_room",
           JSON.stringify({ roomId: code, peerId, name: displayName }),
@@ -191,7 +201,7 @@ export default function LobbyPage() {
         setStatusType("error");
       }
     },
-    [user?.name, peerId, supabase],
+    [user?.id, user?.name, peerId, supabase],
   );
 
   const handleJoinRoom = useCallback(async () => {
@@ -219,6 +229,16 @@ export default function LobbyPage() {
         return;
       }
 
+      await supabase.from("room_members").upsert(
+        {
+          room_id: input,
+          user_id: user?.id,
+          peer_id: peerId,
+          name: displayName,
+        },
+        { onConflict: "room_id,user_id" },
+      );
+
       localStorage.setItem(
         "ruangsemu_last_room",
         JSON.stringify({ roomId: input, peerId, name: displayName }),
@@ -229,7 +249,7 @@ export default function LobbyPage() {
       setStatus("❌ " + (err.message || "Gagal cari room"));
       setStatusType("error");
     }
-  }, [roomCode, user?.name, peerId, supabase]);
+  }, [roomCode, user?.id, user?.name, peerId, supabase]);
 
   const handleEnterRoom = useCallback(
     (roomId: string) => {

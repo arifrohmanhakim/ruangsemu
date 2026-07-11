@@ -41,7 +41,7 @@ export function useRoomConfig({
     setConfigDirty((n) => n + 1);
   }, []);
 
-  async function fetchRoomConfig() {
+  const fetchRoomConfig = useCallback(async () => {
     try {
       const { data: room } = await supabaseRef.current.from("rooms").select("host_user_id").eq("id", roomId).single();
       if (room) { hostUserIdRef.current = room.host_user_id; setIsCreator(room.host_user_id === meRef.current.userId); }
@@ -52,7 +52,7 @@ export function useRoomConfig({
       }
       syncConfigs();
     } catch {}
-  }
+  }, []);
 
   async function updateAreaConfig(areaId: string, visibility: string, pin: string | null) {
     try {
@@ -65,7 +65,7 @@ export function useRoomConfig({
     } catch {}
   }
 
-  async function fetchCustomRooms() {
+  const fetchCustomRooms = useCallback(async () => {
     try {
       const { data } = await supabaseRef.current.from("room_defs").select("*").eq("room_id", roomId);
       if (data && data.length > 0) {
@@ -83,7 +83,7 @@ export function useRoomConfig({
         wallsRef.current = getWallSegments();
       }
     } catch {}
-  }
+  }, [roomId]);
 
   async function handleCreateRoom() {
     const name = newRoomName.trim(); if (!name) return;

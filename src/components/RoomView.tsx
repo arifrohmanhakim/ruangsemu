@@ -82,13 +82,20 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
   const chatRef = useRef<ReturnType<typeof useChat> | null>(null);
   const configRef = useRef<ReturnType<typeof useRoomConfig> | null>(null);
 
-// Peer connection
+  // Stable callbacks to prevent usePeerConnection effect re-run
+  const handlePeerJoin = useCallback((pid: string, name: string, _area: string | null) => {
+    chatRef.current?.addSysGlobal(`${name} masuk room 🚶`);
+  }, []);
+  const handlePeerLeave = useCallback((pid: string, name: string) => {
+    chatRef.current?.addSysGlobal(`${name} keluar room 👋`);
+  }, []);
+
   const peer = usePeerConnection({
     roomId,
     userName,
     userId,
-    onPeerJoin: (pid, name, _area) => chatRef.current?.addSysGlobal(`${name} masuk room 🚶`),
-    onPeerLeave: (pid, name) => chatRef.current?.addSysGlobal(`${name} keluar room 👋`),
+    onPeerJoin: handlePeerJoin,
+    onPeerLeave: handlePeerLeave,
     onMessage: handleMsg,
   });
 
@@ -153,16 +160,9 @@ export default function RoomView({ roomId, userName, userId }: RoomViewProps) {
   useEffect(() => {
     config.fetchRoomConfig();
     config.fetchCustomRooms();
-  }, [config]);
+  }, [config.fetchRoomConfig, config.fetchCustomRooms]);
 
-  // Handle incoming messages
-  useEffect(() => {
-    for (const [, dc] of connectionsRef.current) {
-      dc.on("data", (d: unknown) =>
-        handleMsg(dc.peer as string, d as Record<string, unknown>),
-      );
-    }
-  }, [connectionsRef]);
+  // Duplicate data handlers removed — already handled in usePeerConnection setupDC
 
 // Member click
   const handleMemberClick = useCallback(

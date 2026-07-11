@@ -251,7 +251,6 @@ export function usePeerConnection({
     if (roomMembersChannelRef.current) {
       supabaseRef.current.removeChannel(roomMembersChannelRef.current);
     }
-    await deleteMember();
     localStorage.removeItem("ruangsemu_last_room");
     for (const [, dc] of connectionsRef.current) {
       try { dc.close(); } catch {}
@@ -271,7 +270,16 @@ export function usePeerConnection({
     localStorage.setItem("ruangsemu_peer_id", peerId);
     meRef.current.peerId = peerId;
 
-    let peer = new Peer(peerId);
+    const peerHost = process.env.NEXT_PUBLIC_PEER_HOST;
+    const peerOptions = peerHost
+      ? {
+          host: peerHost,
+          port: Number(process.env.NEXT_PUBLIC_PEER_PORT) || 9000,
+          path: process.env.NEXT_PUBLIC_PEER_PATH || '/',
+          secure: process.env.NEXT_PUBLIC_PEER_SECURE === 'true',
+        }
+      : {};
+    let peer = new Peer(peerId, peerOptions);
     peerRef.current = peer;
 
     peer.on("open", async (pid) => {

@@ -1,6 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import {
+  Container,
+  Paper,
+  Title,
+  Text,
+  Button,
+  TextInput,
+  Modal,
+  Group,
+  Stack,
+  Avatar,
+  Loader,
+  Box,
+} from "@mantine/core";
 import { createClient } from "@/lib/supabase/client";
 import { generateCode, getPeerId } from "@/lib/utils";
 import type { UserProfile } from "@/lib/types";
@@ -32,7 +46,13 @@ export default function LobbyPage() {
   const [renameTarget, setRenameTarget] = useState<MyRoom | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  // Initialize
+  const statusColors: Record<string, string> = {
+    info: "text-dim",
+    error: "text-danger",
+    success: "text-ruangsemu",
+    warn: "text-warning",
+  };
+
   useEffect(() => {
     const pid = getPeerId();
     setPeerId(pid);
@@ -62,23 +82,27 @@ export default function LobbyPage() {
           peerId: pid,
         });
 
-        // Ensure users row exists
-        supabase.from("users").upsert(
-          { id: data.user.id, peer_id: pid, name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "User", avatar_url: data.user.user_metadata?.avatar_url },
-          { onConflict: "id" },
-        ).then(() => {});
+        supabase
+          .from("users")
+          .upsert(
+            {
+              id: data.user.id,
+              peer_id: pid,
+              name:
+                data.user.user_metadata?.full_name ||
+                data.user.email?.split("@")[0] ||
+                "User",
+              avatar_url: data.user.user_metadata?.avatar_url,
+            },
+            { onConflict: "id" },
+          )
+          .then(() => {});
       }
       setLoading(false);
       setStatus("✅ Siap!");
       setStatusType("success");
     });
   }, []);
-
-  // Fetch my rooms when peerId is ready
-  useEffect(() => {
-    if (!peerId) return;
-    fetchMyRooms();
-  }, [peerId]);
 
   const fetchMyRooms = async () => {
     setRoomsLoading(true);
@@ -126,11 +150,14 @@ export default function LobbyPage() {
       );
 
       setMyRooms(roomsWithCount);
-    } catch {
-      // silent
-    }
+    } catch {}
     setRoomsLoading(false);
   };
+
+  useEffect(() => {
+    if (!peerId) return;
+    fetchMyRooms();
+  }, [peerId]);
 
   const handleGoogleLogin = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -249,10 +276,7 @@ export default function LobbyPage() {
       setStatus("⏳ Menghapus grup...");
       setStatusType("info");
       try {
-        const { error } = await supabase
-          .from("rooms")
-          .delete()
-          .eq("id", roomId);
+        const { error } = await supabase.from("rooms").delete().eq("id", roomId);
         if (error) throw error;
         setMyRooms((prev) => prev.filter((r) => r.id !== roomId));
         setStatus("✅ Grup dihapus");
@@ -290,314 +314,361 @@ export default function LobbyPage() {
     [supabase],
   );
 
-  const statusColors = {
-    info: "text-dim",
-    error: "text-danger",
-    success: "text-ruangsemu",
-    warn: "text-warning",
-  };
-
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-bg">
-        <div className="text-center text-dim">
-          <div className="text-5xl mb-4">🚪</div>
-          <div className="text-lg animate-pulse">RuangSemu...</div>
-        </div>
-      </div>
+      <Container
+        size="xs"
+        className="h-screen flex items-center justify-center bg-bg"
+      >
+        <Stack align="center" gap="md">
+          <Text className="text-5xl">🚪</Text>
+          <Loader color="gray" />
+          <Text className="text-lg text-dim">RuangSemu...</Text>
+        </Stack>
+      </Container>
     );
   }
 
-  // Not logged in — login screen
   if (!user) {
     return (
-      <div
+      <Container
+        size="xs"
         className="h-screen flex items-center justify-center bg-bg"
         style={{
           background:
             "radial-gradient(ellipse at 20% 50%, #1a1a3e 0%, #0f0f1a 70%)",
         }}
       >
-        <div className="bg-surface rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl mx-4">
-          <div className="text-5xl mb-2">🚪</div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent mb-6">
-            Ruang Semu
-          </h1>
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full bg-white text-gray-800 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-100 transition text-sm"
+        <Paper
+          p="xl"
+          radius="lg"
+          className="bg-surface w-full max-w-sm text-center shadow-2xl"
+        >
+          <Text className="text-5xl mb-2">🚪</Text>
+          <Title
+            order={1}
+            className="text-3xl font-extrabold bg-gradient-to-r from-ruangsemu to-accent-blue bg-clip-text text-transparent mb-6"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
+            Ruang Semu
+          </Title>
+          <Button
+            fullWidth
+            size="md"
+            variant="default"
+            leftSection={
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+            }
+            onClick={handleGoogleLogin}
+          >
             Masuk dengan Google
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Paper>
+      </Container>
     );
   }
 
-  // Logged in — dashboard
   return (
-    <div className="min-h-screen bg-bg p-4 md:p-6 flex justify-center">
-      <div className="w-full max-w-2xl">
+    <Box className="min-h-screen bg-bg p-4 md:p-6 flex justify-center">
+      <Container size="sm" className="w-full max-w-2xl">
         {/* Top bar */}
-        <div className="flex justify-between items-center mb-6 bg-surface p-3 md:p-4 rounded-2xl border border-surface2">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🚪</span>
-            <h1 className="text-lg font-bold text-white">Ruang semu</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-dim hidden md:block">{peerId}</span>
-            <button
-              onClick={handleLogout}
-              className="text-xs text-dim hover:text-danger transition px-2 py-1 rounded-lg hover:bg-surface2"
-            >
-              Keluar
-            </button>
-            {user.avatarUrl ? (
-              <img
+        <Paper
+          p="md"
+          radius="lg"
+          className="bg-surface border border-surface2 mb-6"
+        >
+          <Group justify="space-between" wrap="nowrap">
+            <Group gap="sm" wrap="nowrap">
+              <Text className="text-2xl">🚪</Text>
+              <Title order={4} className="text-white">
+                Ruang semu
+              </Title>
+            </Group>
+            <Group gap="sm" wrap="nowrap">
+              <Text className="text-xs text-dim hidden md:block">{peerId}</Text>
+              <Button
+                variant="subtle"
+                size="compact-sm"
+                className="text-dim hover:text-danger"
+                onClick={handleLogout}
+              >
+                Keluar
+              </Button>
+              <Avatar
                 src={user.avatarUrl}
-                alt=""
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-ruangsemu flex items-center justify-center text-black font-bold text-sm">
+                alt={user.name}
+                color="var(--color-ruangsemu)"
+                size="sm"
+              >
                 {user.name.charAt(0)}
-              </div>
-            )}
-          </div>
-        </div>
+              </Avatar>
+            </Group>
+          </Group>
+        </Paper>
 
         {/* My rooms */}
-        <div className="mb-6">
-          <h2 className="text-dim mb-3 text-sm font-medium">Grup kamu</h2>
+        <Box mb="md">
+          <Text className="text-dim mb-3 text-sm font-medium">Grup kamu</Text>
           {roomsLoading ? (
-            <div className="text-dim text-sm animate-pulse">Memuat...</div>
+            <Group gap="xs" className="text-dim text-sm">
+              <Loader size="xs" color="gray" />
+              <Text>Memuat...</Text>
+            </Group>
           ) : myRooms.length === 0 ? (
-            <div className="bg-surface rounded-xl p-6 text-center border border-surface2">
-              <p className="text-dim text-sm">Belum ada grup</p>
-              <p className="text-dim/50 text-xs mt-1">
+            <Paper p="xl" className="bg-surface rounded-xl border border-surface2 text-center">
+              <Text className="text-dim text-sm">Belum ada grup</Text>
+              <Text className="text-dim/50 text-xs mt-1">
                 Buat grup baru atau gabung dengan kode undangan
-              </p>
-            </div>
+              </Text>
+            </Paper>
           ) : (
-            <div className="space-y-2">
+            <Stack gap="xs">
               {myRooms.map((room) => (
-                <div
+                <Paper
                   key={room.id}
-                  className="bg-surface p-4 rounded-xl flex justify-between items-center border border-surface2 hover:border-surface3 transition"
+                  p="sm"
+                  className="bg-surface border border-surface2 hover:border-surface3 transition"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-white text-sm truncate">
-                      {room.name}
-                    </div>
-                    <div className="text-xs text-dim">
-                      {room.id} · {room.memberCount} anggota
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 ml-3">
-                    {user.id === room.hostUserId && (
-                      <>
-                        <button
-                          onClick={() => handleDeleteRoom(room.id)}
-                          className="text-xs text-dim hover:text-danger transition px-2 py-1.5 rounded-lg hover:bg-surface2"
-                          title="Hapus grup"
-                        >
-                          Hapus
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRenameTarget(room);
-                            setRenameValue(room.name);
-                            setShowRenameModal(true);
-                          }}
-                          className="text-xs text-dim hover:text-text transition px-2 py-1.5 rounded-lg hover:bg-surface2"
-                          title="Edit nama"
-                        >
-                          Edit
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => handleEnterRoom(room.id)}
-                      className="bg-surface2 text-white px-4 py-2 rounded-lg text-sm hover:bg-surface3 transition"
-                    >
-                      Buka
-                    </button>
-                  </div>
-                </div>
+                  <Group justify="space-between" wrap="nowrap">
+                    <Box className="min-w-0 flex-1">
+                      <Text className="font-semibold text-white text-sm truncate">
+                        {room.name}
+                      </Text>
+                      <Text className="text-xs text-dim">
+                        {room.id} · {room.memberCount} anggota
+                      </Text>
+                    </Box>
+                    <Group gap="xs" wrap="nowrap" className="shrink-0">
+                      {user.id === room.hostUserId && (
+                        <>
+                          <Button
+                            variant="subtle"
+                            color="red"
+                            size="compact-sm"
+                            onClick={() => handleDeleteRoom(room.id)}
+                          >
+                            Hapus
+                          </Button>
+                          <Button
+                            variant="subtle"
+                            color="gray"
+                            size="compact-sm"
+                            onClick={() => {
+                              setRenameTarget(room);
+                              setRenameValue(room.name);
+                              setShowRenameModal(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        variant="filled"
+                        color="dark"
+                        size="compact-sm"
+                        className="bg-surface2 text-white"
+                        onClick={() => handleEnterRoom(room.id)}
+                      >
+                        Buka
+                      </Button>
+                    </Group>
+                  </Group>
+                </Paper>
               ))}
-            </div>
+            </Stack>
           )}
-        </div>
+        </Box>
 
         {/* Rejoin card */}
         {hasRejoin && (
-          <div className="mb-6 bg-surface2/30 rounded-xl p-4 border border-warning/30">
-            <div className="text-xs text-warning font-semibold mb-1">
+          <Paper p="sm" className="bg-surface2/30 border border-warning/30 mb-6">
+            <Text className="text-xs text-warning font-semibold mb-1">
               🔄 Kamu punya room sebelumnya!
-            </div>
-            <div className="text-lg font-bold font-mono text-ruangsemu tracking-wider mb-2">
+            </Text>
+            <Text className="text-lg font-bold font-mono text-ruangsemu tracking-wider mb-2">
               {rejoinRoomId}
-            </div>
-            <div className="flex gap-2">
-              <button
+            </Text>
+            <Group gap="sm">
+              <Button
+                fullWidth
+                className="bg-ruangsemu text-black font-bold"
+                style={{ background: "var(--color-ruangsemu) !important", color: "#000 !important" }}
                 onClick={handleRejoin}
-                className="flex-1 bg-ruangsemu text-black font-bold py-2.5 px-4 rounded-xl hover:bg-ruangsemu-dark transition text-sm"
               >
                 🚪 Masuk Lagi
-              </button>
-              <button
+              </Button>
+              <Button
+                fullWidth
+                variant="subtle"
+                color="gray"
                 onClick={clearRejoin}
-                className="flex-1 bg-ghost text-dim py-2.5 px-4 rounded-xl text-xs hover:text-text transition"
               >
                 Buang
-              </button>
-            </div>
-          </div>
+              </Button>
+            </Group>
+          </Paper>
         )}
 
         {/* Create / Join */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
-          <button
+        <Group gap="sm" mb="md" align="end">
+          <Button
+            fullWidth
+            variant="filled"
+            color="dark"
+            className="bg-warning text-black font-bold hover:bg-amber-500"
+            style={{ background: "var(--color-warning) !important", color: "#000 !important" }}
             onClick={() => {
               setNewRoomName(user?.name || peerId);
               setShowCreateModal(true);
             }}
-            className="md:col-span-2 bg-warning text-black font-bold py-3 px-5 rounded-xl hover:bg-amber-500 transition text-sm"
+            flex={2}
           >
             ✨ Buat grup
-          </button>
-          <div className="md:col-span-3 flex gap-2">
-            <input
-              type="text"
-              placeholder="Kode grup (RM-XXXX)"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
-              className="flex-1 bg-surface2 px-4 rounded-xl w-full text-white text-sm outline-none focus:ring-2 focus:ring-ruangsemu/50 placeholder:text-dim/50 uppercase"
-            />
-            <button
-              onClick={handleJoinRoom}
-              className="bg-ruangsemu text-black font-bold px-6 py-2 rounded-xl text-sm whitespace-nowrap"
-            >
-              Gabung
-            </button>
-          </div>
-        </div>
+          </Button>
+          <TextInput
+            placeholder="Kode grup (RM-XXXX)"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
+            style={{ flex: 1 }}
+            classNames={{ input: "bg-surface2 text-white" }}
+            styles={{ input: { border: "1px solid var(--color-surface2)" } }}
+          />
+          <Button
+            variant="filled"
+            className="bg-ruangsemu text-black font-bold"
+            style={{ background: "var(--color-ruangsemu) !important", color: "#000 !important" }}
+            onClick={handleJoinRoom}
+          >
+            Gabung
+          </Button>
+        </Group>
 
         {/* Status */}
-        <div
-          className={`text-xs min-h-5 text-center ${statusColors[statusType]}`}
-        >
+        <Text className={`text-xs text-center ${statusColors[statusType]}`}>
           {status}
-        </div>
-      </div>
+        </Text>
+      </Container>
 
       {/* Rename Room Modal */}
-      {showRenameModal && renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-surface2">
-            <h3 className="text-lg font-bold text-white mb-4">
-              Edit nama grup
-            </h3>
-            <div className="text-xs text-dim mb-3 font-mono">
+      <Modal
+        opened={showRenameModal}
+        onClose={() => setShowRenameModal(false)}
+        title="Edit nama grup"
+        classNames={{
+          content: "bg-surface",
+          header: "bg-surface",
+          title: "text-white font-bold",
+        }}
+      >
+        {renameTarget && (
+          <>
+            <Text className="text-xs text-dim mb-3 font-mono">
               {renameTarget.id}
-            </div>
-            <input
-              type="text"
+            </Text>
+            <TextInput
               placeholder="Nama grup"
               maxLength={50}
               value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              autoFocus
-              className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ruangsemu transition outline-none placeholder:text-dim/50 mb-6"
+              onChange={(e) => setRenameValue(e.currentTarget.value)}
+              classNames={{ input: "bg-bg border-surface2 text-text" }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   setShowRenameModal(false);
                   handleRenameRoom(renameTarget.id, renameValue);
                 }
               }}
+              mb="md"
             />
-            <div className="flex gap-3">
-              <button
+            <Group gap="sm">
+              <Button
+                variant="subtle"
+                color="gray"
+                fullWidth
                 onClick={() => setShowRenameModal(false)}
-                className="flex-1 bg-ghost text-dim py-2.5 rounded-xl text-sm hover:text-text transition"
               >
                 Batal
-              </button>
-              <button
+              </Button>
+              <Button
+                fullWidth
+                className="bg-ruangsemu text-black font-bold"
+                style={{ background: "var(--color-ruangsemu) !important", color: "#000 !important" }}
                 onClick={() => {
                   setShowRenameModal(false);
                   handleRenameRoom(renameTarget.id, renameValue);
                 }}
-                className="flex-1 bg-ruangsemu text-black font-bold py-2.5 rounded-xl hover:bg-ruangsemu-dark transition text-sm"
               >
                 Simpan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </Group>
+          </>
+        )}
+      </Modal>
 
       {/* Create Room Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-surface2">
-            <h3 className="text-lg font-bold text-white mb-4">
-              Buat grup baru
-            </h3>
-            <input
-              type="text"
-              placeholder="Nama grup"
-              maxLength={50}
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
-              autoFocus
-              className="w-full bg-bg border border-surface2 rounded-xl px-4 py-3 text-text text-sm focus:border-ruangsemu transition outline-none placeholder:text-dim/50 mb-6"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setShowCreateModal(false);
-                  handleCreateRoom(newRoomName);
-                }
-              }}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="flex-1 bg-ghost text-dim py-2.5 rounded-xl text-sm hover:text-text transition"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  handleCreateRoom(newRoomName);
-                }}
-                className="flex-1 bg-warning text-black font-bold py-2.5 rounded-xl hover:bg-amber-500 transition text-sm"
-              >
-                Buat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Modal
+        opened={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Buat grup baru"
+        classNames={{
+          content: "bg-surface",
+          header: "bg-surface",
+          title: "text-white font-bold",
+        }}
+      >
+        <TextInput
+          placeholder="Nama grup"
+          maxLength={50}
+          value={newRoomName}
+          onChange={(e) => setNewRoomName(e.currentTarget.value)}
+          classNames={{ input: "bg-bg border-surface2 text-text" }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setShowCreateModal(false);
+              handleCreateRoom(newRoomName);
+            }
+          }}
+          mb="md"
+        />
+        <Group gap="sm">
+          <Button
+            variant="subtle"
+            color="gray"
+            fullWidth
+            onClick={() => setShowCreateModal(false)}
+          >
+            Batal
+          </Button>
+          <Button
+            fullWidth
+            className="bg-warning text-black font-bold"
+            style={{ background: "var(--color-warning) !important", color: "#000 !important" }}
+            onClick={() => {
+              setShowCreateModal(false);
+              handleCreateRoom(newRoomName);
+            }}
+          >
+            Buat
+          </Button>
+        </Group>
+      </Modal>
+    </Box>
   );
 }

@@ -71,7 +71,7 @@ export function usePeerConnection({
     }
   }
 
-  async function upsertMember() {
+  const upsertMember = useCallback(async () => {
     const me = meRef.current;
     try {
       await supabaseRef.current.from("room_members").upsert(
@@ -89,7 +89,7 @@ export function usePeerConnection({
     } catch (e) {
       console.error("upsertMember error:", e);
     }
-  }
+  }, [roomId]);
 
   async function deleteMember() {
     try {
@@ -156,7 +156,7 @@ export function usePeerConnection({
     } catch {}
   }
 
-  function bc(data: Record<string, unknown>, exclude?: string) {
+  const bc = useCallback((data: Record<string, unknown>, exclude?: string) => {
     const j = JSON.stringify(data);
     for (const [pid, dc] of connectionsRef.current) {
       if (pid !== exclude && dc.open) {
@@ -165,7 +165,7 @@ export function usePeerConnection({
         } catch {}
       }
     }
-  }
+  }, []);
 
   function connectTo(pid: string) {
     if (connectionsRef.current.has(pid) || pid === meRef.current.peerId || !peerRef.current) return;
